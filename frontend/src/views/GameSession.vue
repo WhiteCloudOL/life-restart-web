@@ -13,6 +13,7 @@ const customChoice = ref<string>('');
 const isRetryConfirmVisible = ref<boolean>(false);
 const changedStats = ref<Set<string>>(new Set());
 const statTrend = ref<Record<string, 'up' | 'down' | 'none'>>({});
+const statDelta = ref<Record<string, number>>({});
 const previousStats = ref<Record<string, number>>({});
 const displayedStats = ref<Record<string, number>>({});
 const typedAssistantIds = ref<Set<number>>(new Set());
@@ -24,6 +25,7 @@ const elapsedTicker = ref<number>(Date.now());
 const elapsedTimer = ref<number | null>(null);
 const startProcessingSince = ref<number | null>(null);
 const gameplayProcessingSince = ref<number | null>(null);
+const optionalAttributeKeys = new Set(['happiness', '幸福']);
 
 const getElapsedSeconds = (since: number | null): number => {
   if (!since) {
@@ -126,6 +128,7 @@ const parsedChoices = computed<Array<{ raw: string; action: string; meta: string
 
 const sortedStats = computed<Array<{ key: string; value: number }>>(() => {
   return Object.keys(gameStore.currentStats)
+    .filter((key) => !optionalAttributeKeys.has(key))
     .sort((a, b) => a.localeCompare(b))
     .map((key) => ({
       key,
@@ -143,7 +146,12 @@ const formatStatLabel = (key: string): string => {
   return gameStore.statLabelMap[key] ?? key;
 };
 
-const setupRows = computed(() => gameStore.selectedPreset?.attributes ?? []);
+const getStatDelta = (key: string): number => Math.round(statDelta.value[key] ?? 0);
+
+const setupRows = computed(() => {
+  const attrs = gameStore.selectedPreset?.attributes ?? [];
+  return attrs.filter((item) => !optionalAttributeKeys.has(item.key));
+});
 const isCustomPreset = computed<boolean>(() => Boolean(gameStore.selectedPreset?.is_custom));
 
 const canOperate = computed<boolean>(() => {
@@ -313,6 +321,7 @@ watch(
   (latest) => {
     const diff = new Set<string>();
     const nextTrend: Record<string, 'up' | 'down' | 'none'> = {};
+    const nextDelta: Record<string, number> = {};
 
     Object.entries(latest).forEach(([key, value]) => {
       const previous = previousStats.value[key];
@@ -320,22 +329,19 @@ watch(
       animateNumber(key, from, value);
       if (previous === undefined || previous === value) {
         nextTrend[key] = 'none';
+        nextDelta[key] = 0;
         return;
       }
+      const delta = value - previous;
       diff.add(key);
-      nextTrend[key] = value > previous ? 'up' : 'down';
+      nextTrend[key] = delta > 0 ? 'up' : 'down';
+      nextDelta[key] = delta;
     });
 
     changedStats.value = diff;
     statTrend.value = nextTrend;
+    statDelta.value = nextDelta;
     previousStats.value = { ...latest };
-
-    if (diff.size > 0) {
-      window.setTimeout(() => {
-        changedStats.value = new Set();
-        statTrend.value = {};
-      }, 650);
-    }
   },
   { deep: true, immediate: true },
 );
@@ -506,7 +512,22 @@ onMounted(async () => {
           ]"
         >
           <span>{{ formatStatLabel(item.key) }}</span>
-          <strong>{{ item.value }}</strong>
+          <div class="value-wrap">
+            <span
+              v-if="getStatDelta(item.key) !== 0"
+              class="delta"
+              :class="getStatDelta(item.key) > 0 ? 'is-up' : 'is-down'"
+            >
+              (
+              {{
+                getStatDelta(item.key) > 0
+                  ? `+${getStatDelta(item.key)}`
+                  : getStatDelta(item.key)
+              }}
+              )
+            </span>
+            <strong>{{ item.value }}</strong>
+          </div>
         </li>
       </ul>
     </aside>
@@ -794,6 +815,25 @@ onMounted(async () => {
 .stats-panel li strong {
   font-variant-numeric: tabular-nums;
   color: var(--title);
+}
+
+.value-wrap {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.delta {
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+
+.delta.is-up {
+  color: #2a9d8f;
+}
+
+.delta.is-down {
+  color: #e63946;
 }
 
 .stats-panel li.changed {

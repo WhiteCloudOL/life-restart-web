@@ -1,22 +1,33 @@
 # AI Life Simulator 世界预设配置模板
 # 启动时会自动基于此模板创建/同步 config/world_config.toml（若缺失或字段名变化）
 
+# ==========================================
+# 预设 1：普通家庭开局
+# ==========================================
 [[startup_presets]]
 id = 1
 title = "普通家庭开局"
 description = "你出生在一个普通家庭，资源有限但关系温暖。"
 worldview = "近未来都市世界。社会资源分层明显，但教育与互联网机会仍然存在。你的选择将影响职业、关系与命运转折。"
 character_options = ["务实内向", "外向冒险", "理性规划"]
-max_attribute_points = 260
-start_age = 18
+max_attribute_points = 15
+start_age = 0
 age_step = 1
+
+[[startup_presets.attributes]]
+key = "looks"
+label = "颜值"
+purpose = "影响他人的第一印象、社交机会与部分特定事件倾向。"
+min_value = 0
+max_value = 10
+default_value = 0
 
 [[startup_presets.attributes]]
 key = "physique"
 label = "体质"
 purpose = "决定基础健康、抗压能力与生存下限。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
 [[startup_presets.attributes]]
@@ -24,7 +35,7 @@ key = "intelligence"
 label = "智力"
 purpose = "影响学习效率、信息处理与策略判断。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
 [[startup_presets.attributes]]
@@ -32,33 +43,37 @@ key = "wealth"
 label = "家境"
 purpose = "影响开局资源、人脉与容错空间。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
-[[startup_presets.attributes]]
-key = "happiness"
-label = "幸福"
-purpose = "影响心理韧性、关系质量与长期稳定性。"
-min_value = 0
-max_value = 120
-default_value = 0
 
+# ==========================================
+# 预设 2：赛博城贫民区
+# ==========================================
 [[startup_presets]]
 id = 2
 title = "赛博城贫民区"
 description = "你在巨型企业统治下的霓虹都市底层长大。"
 worldview = "高科技、低生活。企业、帮派与地下市场共同塑造秩序。每次抉择都可能带来阶级跃迁，也可能坠入深渊。"
 character_options = ["黑客学徒", "街头修补匠", "情报中间人"]
-max_attribute_points = 240
-start_age = 18
+max_attribute_points = 15
+start_age = 0
 age_step = 1
+
+[[startup_presets.attributes]]
+key = "looks"
+label = "魅力投影"
+purpose = "影响在夜之城的伪装程度、交涉成功率与街头声望。"
+min_value = 0
+max_value = 10
+default_value = 0
 
 [[startup_presets.attributes]]
 key = "physique"
 label = "体质"
 purpose = "决定义体负载、生存韧性与受伤恢复能力。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
 [[startup_presets.attributes]]
@@ -66,7 +81,7 @@ key = "intelligence"
 label = "算力思维"
 purpose = "影响黑客效率、情报分析与技术决策上限。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
 [[startup_presets.attributes]]
@@ -74,17 +89,151 @@ key = "wealth"
 label = "信用额度"
 purpose = "影响资金周转、交易权限与风险缓冲。"
 min_value = 0
-max_value = 120
+max_value = 10
+default_value = 0
+
+
+# ==========================================
+# 预设 3：修仙界凡人
+# ==========================================
+[[startup_presets]]
+id = 3
+title = "修仙界凡人"
+description = "大道无情，凡人修仙。你降生于九州大陆的某个角落。"
+worldview = "修仙者移山填海，凡人如蝼蚁。灵气复苏的时代，仙门林立，尔虞我诈，步步惊心。你能否逆天改命，飞升仙界？"
+character_options = ["天生道心", "隐忍坚毅", "气运之子"]
+max_attribute_points = 15
+start_age = 0
+age_step = 1
+
+[[startup_presets.attributes]]
+key = "looks"
+label = "仙姿"
+purpose = "影响拜入仙门的机会、双修道侣的结交以及部分奇遇的触发。"
+min_value = 0
+max_value = 10
 default_value = 0
 
 [[startup_presets.attributes]]
-key = "happiness"
-label = "精神稳定"
-purpose = "影响极端压力下的理性与行动连续性。"
+key = "physique"
+label = "灵根"
+purpose = "修仙的基础，决定吸纳天地灵气的速度与肉体淬炼的上限。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
+[[startup_presets.attributes]]
+key = "intelligence"
+label = "悟性"
+purpose = "决定领悟功法、突破境界的概率及阵法炼丹的造诣。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "wealth"
+label = "机缘"
+purpose = "影响出生背景（世家或凡农）、奇遇法宝掉落率及逢凶化吉的能力。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+
+# ==========================================
+# 预设 4：废土拾荒者
+# ==========================================
+[[startup_presets]]
+id = 4
+title = "废土拾荒者"
+description = "核战后的辐射废土，生存是唯一法则。"
+worldview = "旧文明已经覆灭，资源枯竭，异种横行。掠夺者和变异生物是家常便饭，信任是最奢侈的物品。"
+character_options = ["独狼拾荒者", "避难所弃儿", "狂热暴徒"]
+max_attribute_points = 15
+start_age = 0
+age_step = 1
+
+[[startup_presets.attributes]]
+key = "looks"
+label = "威慑力"
+purpose = "在废土上美丽一文不值，让人感到危险和敬畏才能避免无端冲突。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "physique"
+label = "辐射抗性"
+purpose = "决定在恶劣环境下的生存时间、疾病抵抗力及近战能力。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "intelligence"
+label = "求生智识"
+purpose = "影响辨别毒素、制作简易武器、修理旧世界科技的能力。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "wealth"
+label = "初始物资"
+purpose = "决定开局拥有的净水、罐头、防身武器以及安全屋的质量。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+
+# ==========================================
+# 预设 5：提瓦特降临者 (新增)
+# ==========================================
+[[startup_presets]]
+id = 5
+title = "提瓦特降临者"
+description = "作为星海间旅行的双子之一，你在提瓦特的沙滩上独自苏醒。"
+worldview = "由七神统治的提瓦特大陆，元素之力交汇。你失去了原本的力量与血亲，必须踏上游历七国、结识同伴、寻找神明与世界真相的旅途。"
+character_options = ["空 (寻找妹妹)", "荧 (寻找哥哥)"]
+max_attribute_points = 15
+start_age = 0
+age_step = 1
+
+[[startup_presets.attributes]]
+key = "looks"
+label = "异星魅力"
+purpose = "影响结交提瓦特伙伴、获取派蒙信任以及在各国办事时的声望积累。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "physique"
+label = "元素共鸣"
+purpose = "决定身体无神之眼驱动元素力的上限、战斗中的体力值与抗击打能力。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "intelligence"
+label = "洞察解谜"
+purpose = "影响破解上古遗迹机关、探寻深渊真相与学习提瓦特各类食谱、图纸的速度。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "wealth"
+label = "纠缠之缘"
+purpose = "决定旅行初期的摩拉盘缠、祈愿结识强力伙伴的运气与物资购买力。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+
+# ==========================================
+# 自定义预设
+# ==========================================
 [custom_preset]
 enabled = true
 id = 9999
@@ -92,37 +241,37 @@ title = "自定义预设"
 description = "自由输入世界观与角色设定，开始专属人生线路。"
 default_worldview = ""
 max_attribute_points = 15
-start_age = 18
+start_age = 0
 age_step = 1
 
 [[custom_preset.attributes]]
-key = "颜值"
+key = "looks"
 label = "颜值"
 purpose = "影响第一印象、社交机会与部分事件倾向。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
 [[custom_preset.attributes]]
-key = "智力"
-label = "智力"
-purpose = "影响学习、判断与复杂问题处理能力。"
-min_value = 0
-max_value = 120
-default_value = 0
-
-[[custom_preset.attributes]]
-key = "体质"
+key = "physique"
 label = "体质"
 purpose = "决定基础健康与高压环境下的生存能力。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0
 
 [[custom_preset.attributes]]
-key = "家境"
+key = "intelligence"
+label = "智力"
+purpose = "影响学习、判断与复杂问题处理能力。"
+min_value = 0
+max_value = 10
+default_value = 0
+
+[[custom_preset.attributes]]
+key = "wealth"
 label = "家境"
 purpose = "影响起步资源、关系网络与成长容错。"
 min_value = 0
-max_value = 120
+max_value = 10
 default_value = 0

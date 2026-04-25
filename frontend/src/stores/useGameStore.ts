@@ -17,6 +17,10 @@ const buildChoices = (resp: GameStepResponse): string[] => {
   return FALLBACK_CHOICES;
 };
 
+const OPTIONAL_SETUP_ATTRIBUTE_KEYS = new Set(['happiness', '幸福']);
+
+const isOptionalSetupAttribute = (key: string): boolean => OPTIONAL_SETUP_ATTRIBUTE_KEYS.has(key);
+
 export const useGameStore = defineStore('game', () => {
   const presets = ref<GamePreset[]>([]);
   const isLoadingPresets = ref<boolean>(false);
@@ -48,11 +52,26 @@ export const useGameStore = defineStore('game', () => {
     return presets.value.find((item) => item.id === selectedPresetId.value) ?? null;
   });
 
+  const requiredSetupAttributes = computed(() => {
+    const attrs = selectedPreset.value?.attributes ?? [];
+    return attrs.filter((item) => !isOptionalSetupAttribute(item.key));
+  });
+
+  const optionalDefaultPoints = computed<number>(() => {
+    const attrs = selectedPreset.value?.attributes ?? [];
+    return attrs
+      .filter((item) => isOptionalSetupAttribute(item.key))
+      .reduce((acc, item) => acc + item.default_value, 0);
+  });
+
   const setupAttributeTotal = computed<number>(() => {
     return Object.values(setupAttributes.value).reduce((acc, cur) => acc + cur, 0);
   });
 
-  const setupAttributeLimit = computed<number>(() => selectedPreset.value?.max_attribute_points ?? 0);
+  const setupAttributeLimit = computed<number>(() => {
+    const maxPoints = selectedPreset.value?.max_attribute_points ?? 0;
+    return Math.max(maxPoints - optionalDefaultPoints.value, 0);
+  });
   const isSetupValid = computed<boolean>(() => {
     if (!selectedPreset.value) {
       return false;
@@ -149,8 +168,10 @@ export const useGameStore = defineStore('game', () => {
       return;
     }
     preset.attributes.forEach((item) => {
-      setupAttributes.value[item.key] = item.default_value;
       statLabelMap.value[item.key] = item.label;
+    });
+    requiredSetupAttributes.value.forEach((item) => {
+      setupAttributes.value[item.key] = item.default_value;
     });
   };
 
@@ -162,8 +183,8 @@ export const useGameStore = defineStore('game', () => {
     if (!selectedPreset.value) {
       return;
     }
-    const attrs = selectedPreset.value.attributes;
-    const totalLimit = selectedPreset.value.max_attribute_points;
+    const attrs = requiredSetupAttributes.value;
+    const totalLimit = setupAttributeLimit.value;
     const result: Record<string, number> = {};
     let remaining = totalLimit;
 
