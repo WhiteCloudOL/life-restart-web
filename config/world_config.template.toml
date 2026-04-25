@@ -1,0 +1,128 @@
+# AI Life Simulator 世界预设配置模板
+# 启动时会自动基于此模板创建/同步 config/world_config.toml（若缺失或字段名变化）
+
+[[startup_presets]]
+id = 1
+title = "普通家庭开局"
+description = "你出生在一个普通家庭，资源有限但关系温暖。"
+worldview = "近未来都市世界。社会资源分层明显，但教育与互联网机会仍然存在。你的选择将影响职业、关系与命运转折。"
+character_options = ["务实内向", "外向冒险", "理性规划"]
+max_attribute_points = 260
+start_age = 18
+age_step = 1
+
+[[startup_presets.attributes]]
+key = "physique"
+label = "体质"
+purpose = "决定基础健康、抗压能力与生存下限。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "intelligence"
+label = "智力"
+purpose = "影响学习效率、信息处理与策略判断。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "wealth"
+label = "家境"
+purpose = "影响开局资源、人脉与容错空间。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "happiness"
+label = "幸福"
+purpose = "影响心理韧性、关系质量与长期稳定性。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets]]
+id = 2
+title = "赛博城贫民区"
+description = "你在巨型企业统治下的霓虹都市底层长大。"
+worldview = "高科技、低生活。企业、帮派与地下市场共同塑造秩序。每次抉择都可能带来阶级跃迁，也可能坠入深渊。"
+character_options = ["黑客学徒", "街头修补匠", "情报中间人"]
+max_attribute_points = 240
+start_age = 18
+age_step = 1
+
+[[startup_presets.attributes]]
+key = "physique"
+label = "体质"
+purpose = "决定义体负载、生存韧性与受伤恢复能力。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "intelligence"
+label = "算力思维"
+purpose = "影响黑客效率、情报分析与技术决策上限。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "wealth"
+label = "信用额度"
+purpose = "影响资金周转、交易权限与风险缓冲。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[startup_presets.attributes]]
+key = "happiness"
+label = "精神稳定"
+purpose = "影响极端压力下的理性与行动连续性。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[custom_preset]
+enabled = true
+id = 9999
+title = "自定义预设"
+description = "自由输入世界观与角色设定，开始专属人生线路。"
+default_worldview = ""
+max_attribute_points = 15
+start_age = 18
+age_step = 1
+
+[[custom_preset.attributes]]
+key = "颜值"
+label = "颜值"
+purpose = "影响第一印象、社交机会与部分事件倾向。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[custom_preset.attributes]]
+key = "智力"
+label = "智力"
+purpose = "影响学习、判断与复杂问题处理能力。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[custom_preset.attributes]]
+key = "体质"
+label = "体质"
+purpose = "决定基础健康与高压环境下的生存能力。"
+min_value = 0
+max_value = 120
+default_value = 0
+
+[[custom_preset.attributes]]
+key = "家境"
+label = "家境"
+purpose = "影响起步资源、关系网络与成长容错。"
+min_value = 0
+max_value = 120
+default_value = 0

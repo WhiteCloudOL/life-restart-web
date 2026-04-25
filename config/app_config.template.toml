@@ -1,0 +1,34 @@
+# AI Life Simulator 后端业务配置模板
+# 启动时会自动基于此模板创建/同步 config/app_config.toml（若缺失或字段名变化）
+
+[default_model]
+provider = "openai_compatible"
+model = "deepseek-v4-flash"
+base_url = "https://api.openai.com/v1"
+api_key = "replace-with-your-api-key"
+
+[default_admin]
+username = "admin"
+password = "Admin@12345678"
+
+[quota]
+default_daily_quota = 20
+max_daily_quota = 10000
+default_daily_model_call_limit = 80
+max_daily_model_call_limit = 20000
+
+[frontend]
+public_origin = "http://127.0.0.1:5173"
+route_base = "/"
+
+[gameplay]
+total_attribute_points = 15
+death_stat_keys = ["health", "体质", "生命", "生存", "hp"]
+death_stat_threshold = 0
+death_event_keywords = ["死亡", "去世", "身亡", "当场死亡", "终年", "dead", "died"]
+default_next_choices = [
+  "[高风险] 孤注一掷投入高杠杆计划：若成功可迅速获得巨额资源与关键人脉，但失败将触发致命级连锁危机，可能直接结束人生。",
+  "[中风险] 与关键势力进行策略博弈：有机会稳步提升地位并拿到阶段性收益，但判断失误会遭遇重创，存在较高失败概率。",
+  "[低风险] 选择保守积累与基础建设：收益较慢但稳定，长期有助于提升生存韧性；仅在连续误判或外部突发事件下才可能终局。",
+]
+max_next_choices = 3

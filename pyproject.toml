@@ -1,0 +1,41 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ai-life-simulator-backend"
+version = "0.1.0"
+description = "High-security FastAPI backend MVP for AI Life Simulator"
+readme = "README.md"
+requires-python = ">=3.11"
+authors = [{ name = "AI Life Simulator Team" }]
+dependencies = [
+  "fastapi>=0.115.0,<1.0.0",
+  "uvicorn[standard]>=0.32.0,<1.0.0",
+  "sqlmodel>=0.0.22,<1.0.0",
+  "pydantic-settings>=2.6.0,<3.0.0",
+  "python-dotenv>=1.0.1,<2.0.0",
+  "cryptography>=43.0.0,<46.0.0",
+  "pyjwt>=2.9.0,<3.0.0",
+  "passlib[bcrypt]>=1.7.4,<2.0.0",
+  "litellm>=1.52.0,<2.0.0",
+  "python-multipart>=0.0.12,<1.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+  "pytest>=8.3.0,<9.0.0",
+  "httpx>=0.28.0,<1.0.0",
+  "ruff>=0.7.0,<1.0.0",
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["app*"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "B", "UP"]
