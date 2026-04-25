@@ -1,7 +1,7 @@
 from datetime import date
 from typing import Literal, Optional
 
-from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field
+from pydantic import AnyHttpUrl, BaseModel, ConfigDict, Field, field_validator
 
 
 class UserRead(BaseModel):
@@ -24,8 +24,23 @@ class UserRead(BaseModel):
 
 class UserUpdateRequest(BaseModel):
     model_config = ConfigDict(extra="forbid")
-    nickname: Optional[str] = Field(default=None, min_length=1, max_length=32)
+    nickname: Optional[str] = Field(default=None, max_length=32)
     api_mode: Optional[Literal["default", "custom"]] = None
     custom_api_key: Optional[str] = Field(default=None, max_length=2048)
-    custom_model_name: Optional[str] = Field(default=None, min_length=1, max_length=200)
+    custom_model_name: Optional[str] = Field(default=None, max_length=200)
     custom_base_url: Optional[AnyHttpUrl] = None
+
+    @field_validator("nickname")
+    @classmethod
+    def normalize_nickname(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        return value.strip()
+
+    @field_validator("custom_api_key", "custom_model_name")
+    @classmethod
+    def normalize_optional_text(cls, value: Optional[str]) -> Optional[str]:
+        if value is None:
+            return None
+        trimmed = value.strip()
+        return trimmed or None

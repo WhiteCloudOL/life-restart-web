@@ -7,8 +7,6 @@ from app.core.security import (
     create_access_token,
     has_usable_user_secret,
     hash_password,
-    validate_password_strength,
-    validate_username,
     verify_password,
 )
 from app.models.user import User
@@ -20,20 +18,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
 def register(payload: RegisterRequest, session: Session = Depends(get_session)) -> UserRead:
-    try:
-        safe_username = validate_username(payload.username)
-        validate_password_strength(payload.password)
-    except ValueError as exc:
-        raise HTTPException(status_code=400, detail=str(exc))
-
-    existing_user = session.exec(select(User).where(User.username == safe_username)).first()
+    existing_user = session.exec(select(User).where(User.username == payload.username)).first()
     if existing_user:
         raise HTTPException(status_code=409, detail="用户名已存在")
 
     app_config = get_app_config()
     user = User(
-        username=safe_username,
-        nickname=safe_username,
+        username=payload.username,
+        nickname=payload.username,
         hashed_password=hash_password(payload.password),
         daily_quota=app_config.quota.default_daily_quota,
         daily_model_call_limit=app_config.quota.default_daily_model_call_limit,
@@ -62,7 +54,7 @@ def register(payload: RegisterRequest, session: Session = Depends(get_session)) 
 def login(payload: LoginRequest, session: Session = Depends(get_session)) -> TokenResponse:
     # 登录失败统一提示，减少用户名枚举风险
     generic_error = HTTPException(status_code=401, detail="用户名或密码错误")
-    user = session.exec(select(User).where(User.username == payload.username.strip())).first()
+    user = session.exec(select(User).where(User.username == payload.username)).first()
     if not user:
         raise generic_error
     if not verify_password(payload.password, user.hashed_password):

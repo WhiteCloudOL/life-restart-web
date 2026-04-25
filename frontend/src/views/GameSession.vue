@@ -20,6 +20,31 @@ const activeChoice = ref<string | null>(null);
 const isSubmittingCustom = ref<boolean>(false);
 const feedRef = ref<HTMLElement | null>(null);
 const autoScrollTimer = ref<number | null>(null);
+const elapsedTicker = ref<number>(Date.now());
+const elapsedTimer = ref<number | null>(null);
+const startProcessingSince = ref<number | null>(null);
+const gameplayProcessingSince = ref<number | null>(null);
+
+const getElapsedSeconds = (since: number | null): number => {
+  if (!since) {
+    return 0;
+  }
+  return Math.max(1, Math.floor((elapsedTicker.value - since) / 1000));
+};
+
+const startEtaText = computed<string>(() => {
+  if (!startProcessingSince.value) {
+    return '预计处理 10-25 秒';
+  }
+  return `正在处理，已处理 ${getElapsedSeconds(startProcessingSince.value)} 秒`;
+});
+
+const executeEtaText = computed<string>(() => {
+  if (!gameplayProcessingSince.value) {
+    return '预计处理 8-20 秒';
+  }
+  return `正在处理，已处理 ${getElapsedSeconds(gameplayProcessingSince.value)} 秒`;
+});
 
 const latestEventId = computed<number | null>(() => {
   const list = gameStore.storyEvents;
@@ -188,10 +213,13 @@ const beginWorld = async (): Promise<void> => {
   if (!gameStore.selectedPreset) {
     return;
   }
+  startProcessingSince.value = Date.now();
   try {
     await gameStore.startSelectedWorld();
   } catch (error) {
     notifyError('进入世界失败，请稍后重试', error);
+  } finally {
+    startProcessingSince.value = null;
   }
 };
 
@@ -205,11 +233,13 @@ const runChoice = async (choice: string): Promise<void> => {
   }
   customChoice.value = '';
   activeChoice.value = choice;
+  gameplayProcessingSince.value = Date.now();
   try {
     await gameStore.runNextStep(choice.trim());
   } catch (error) {
     notifyError('推进失败，请稍后重试', error);
   } finally {
+    gameplayProcessingSince.value = null;
     activeChoice.value = null;
   }
 };
@@ -338,8 +368,31 @@ watch(
   { immediate: true },
 );
 
+watch(
+  [startProcessingSince, gameplayProcessingSince],
+  () => {
+    const hasProcessing = Boolean(startProcessingSince.value || gameplayProcessingSince.value);
+    if (hasProcessing && elapsedTimer.value === null) {
+      elapsedTicker.value = Date.now();
+      elapsedTimer.value = window.setInterval(() => {
+        elapsedTicker.value = Date.now();
+      }, 1000);
+      return;
+    }
+    if (!hasProcessing && elapsedTimer.value !== null) {
+      window.clearInterval(elapsedTimer.value);
+      elapsedTimer.value = null;
+    }
+  },
+  { immediate: true },
+);
+
 onBeforeUnmount(() => {
   stopAutoScrollWhileTyping();
+  if (elapsedTimer.value !== null) {
+    window.clearInterval(elapsedTimer.value);
+    elapsedTimer.value = null;
+  }
 });
 
 onMounted(async () => {
@@ -422,9 +475,18 @@ onMounted(async () => {
       <p v-if="!gameStore.isSetupValid" class="warn">当前配置未满足要求，请检查属性总点与自定义输入内容。</p>
 
       <div class="setup-actions">
-        <BaseButton :loading="gameStore.isActionPending" :disabled="!gameStore.isSetupValid" @click="beginWorld">
-          开始人生
-        </BaseButton>
+        <div class="primary-action">
+          <BaseButton
+            class="start-button"
+            :block="false"
+            :loading="gameStore.isActionPending"
+            :disabled="!gameStore.isSetupValid"
+            @click="beginWorld"
+          >
+            开始人生
+          </BaseButton>
+          <span class="eta-text">{{ startEtaText }}</span>
+        </div>
         <button type="button" class="ghost" @click="router.push('/')">返回大厅</button>
       </div>
     </div>
@@ -479,6 +541,7 @@ onMounted(async () => {
           <BaseButton type="button" @click="revealNextSegment">
             继续阅读下一段（剩余 {{ gameStore.pendingStorySegments.length }} 段）
           </BaseButton>
+          <span class="eta-text">预计处理 1 秒内</span>
         </div>
 
         <p class="situation-title">当前面临情况</p>
@@ -528,9 +591,12 @@ onMounted(async () => {
             maxlength="200"
             placeholder="或输入你的自定义行动（最多 200 字）"
           />
-          <BaseButton type="submit" :loading="isSubmittingCustom" :disabled="!canOperate || !customChoice.trim()">
-            执行
-          </BaseButton>
+          <div class="execute-wrap">
+            <BaseButton type="submit" :loading="isSubmittingCustom" :disabled="!canOperate || !customChoice.trim()">
+              执行
+            </BaseButton>
+            <span class="eta-text">{{ executeEtaText }}</span>
+          </div>
         </form>
       </footer>
     </main>
@@ -629,6 +695,24 @@ onMounted(async () => {
 .setup-actions {
   display: flex;
   gap: 8px;
+  align-items: center;
+}
+
+.primary-action {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.start-button {
+  flex: 1;
+}
+
+.setup-actions .ghost {
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .ghost {
@@ -820,6 +904,8 @@ onMounted(async () => {
 
 .segment-actions {
   display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .retry-wrap button {
@@ -919,6 +1005,19 @@ onMounted(async () => {
   display: grid;
   grid-template-columns: minmax(0, 1fr) 110px;
   gap: 8px;
+}
+
+.execute-wrap {
+  display: grid;
+  gap: 4px;
+}
+
+.eta-text {
+  align-self: center;
+  color: var(--subtext);
+  font-size: 12px;
+  line-height: 1.4;
+  white-space: nowrap;
 }
 
 .custom-form input {

@@ -10,8 +10,11 @@ export const PASSWORD_MIN_LENGTH = 10;
 export const PASSWORD_MAX_LENGTH = 128;
 
 const usernamePattern = /^[a-zA-Z0-9_]+$/;
-const hasLetter = /[A-Za-z]/;
+const hasUppercase = /[A-Z]/;
+const hasLowercase = /[a-z]/;
 const hasNumber = /\d/;
+const hasSpecial = /[^A-Za-z0-9]/;
+const weakWords = ['password', 'qwerty', 'admin', '123456'];
 
 export const validateUsername = (username: string): string => {
   const trimmed = username.trim();
@@ -34,8 +37,24 @@ export const validatePassword = (password: string): string => {
   if (password.length > PASSWORD_MAX_LENGTH) {
     return `密码长度不能超过 ${PASSWORD_MAX_LENGTH}`;
   }
-  if (!hasLetter.test(password) || !hasNumber.test(password)) {
-    return '密码需同时包含字母和数字';
+  if (!hasUppercase.test(password)) {
+    return '密码需至少包含 1 个大写字母';
+  }
+  if (!hasLowercase.test(password)) {
+    return '密码需至少包含 1 个小写字母';
+  }
+  if (!hasNumber.test(password)) {
+    return '密码需至少包含 1 个数字';
+  }
+  if (!hasSpecial.test(password)) {
+    return '密码需至少包含 1 个特殊字符';
+  }
+  const lowered = password.toLowerCase();
+  if (weakWords.some((word) => lowered.includes(word))) {
+    return '密码过于常见，请更换更强密码';
+  }
+  if (new TextEncoder().encode(password).length > 72) {
+    return '密码过长（最多 72 字节）';
   }
   return '';
 };
@@ -46,4 +65,3 @@ export const validateConfirmPassword = (password: string, confirmPassword: strin
   }
   return '';
 };
-

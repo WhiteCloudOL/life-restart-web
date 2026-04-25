@@ -26,7 +26,7 @@ def _build_model_candidates(model_name: str) -> List[str]:
 def _extract_message_content(resp: Any) -> str:
     try:
         return resp.choices[0].message.content or "{}"
-    except Exception:
+    except (AttributeError, IndexError, KeyError, TypeError):
         return "{}"
 
 

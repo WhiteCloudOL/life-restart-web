@@ -13,6 +13,7 @@ from app.services.game_engine import parse_json_array, parse_json_object
 from app.services.quota import reset_quota_if_new_day
 
 router = APIRouter(prefix="/user", tags=["user"])
+MAX_HISTORY_RECORDS = 200
 
 
 def to_user_read(user: User) -> UserRead:
@@ -51,18 +52,19 @@ def update_me(
     session: Session = Depends(get_session),
 ):
     if "nickname" in payload.model_fields_set:
-        nickname = (payload.nickname or "").strip()
-        current_user.nickname = nickname if nickname else current_user.username
+        current_user.nickname = payload.nickname or current_user.username
     if "api_mode" in payload.model_fields_set and payload.api_mode is not None:
         current_user.api_mode = payload.api_mode
 
     if "custom_api_key" in payload.model_fields_set:
         # 自定义 Key 仅在服务端加密落库，避免明文存储
-        trimmed = (payload.custom_api_key or "").strip()
-        current_user.custom_api_key = encrypt_user_secret(trimmed) if trimmed else None
+        current_user.custom_api_key = (
+            encrypt_user_secret(payload.custom_api_key)
+            if payload.custom_api_key
+            else None
+        )
     if "custom_model_name" in payload.model_fields_set:
-        model_name = (payload.custom_model_name or "").strip()
-        current_user.custom_model_name = model_name if model_name else None
+        current_user.custom_model_name = payload.custom_model_name
     if "custom_base_url" in payload.model_fields_set:
         current_user.custom_base_url = str(payload.custom_base_url) if payload.custom_base_url else None
 
@@ -87,6 +89,7 @@ def my_history(
         select(GameSession)
         .where(GameSession.user_id == current_user.id)
         .order_by(GameSession.id.desc())
+        .limit(MAX_HISTORY_RECORDS)
     ).all()
 
     result: List[GameSessionRead] = []

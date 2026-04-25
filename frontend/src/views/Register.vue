@@ -85,7 +85,7 @@ const onSubmit = async (): Promise<void> => {
         label="密码"
         type="password"
         autocomplete="new-password"
-        placeholder="至少 10 位，需包含字母和数字"
+        placeholder="至少 10 位，需含大小写字母、数字和特殊字符"
         :error="passwordError"
         :max-length="PASSWORD_MAX_LENGTH"
         @blur="validateForm"
@@ -110,7 +110,7 @@ const onSubmit = async (): Promise<void> => {
       已有账号？
       <RouterLink to="/login">去登录</RouterLink>
     </p>
-    <p class="hint">用户名最少 {{ USERNAME_MIN_LENGTH }} 位，密码至少 10 位且需含数字。</p>
+    <p class="hint">用户名最少 {{ USERNAME_MIN_LENGTH }} 位，密码需含大小写字母、数字与特殊字符。</p>
   </AuthCard>
 </template>
 

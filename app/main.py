@@ -1,21 +1,25 @@
 from contextlib import asynccontextmanager
+import logging
 
 from fastapi import FastAPI
 from fastapi.responses import JSONResponse
+from starlette.concurrency import run_in_threadpool
 
 from app.api.router import api_router
 from app.core.config import get_settings
 from app.core.middleware import setup_middlewares
 from app.db.init_db import init_db, migrate_user_secret_storage, seed_default_admin, seed_default_presets
 
+logger = logging.getLogger(__name__)
+
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     # 启动阶段初始化数据库结构并注入默认预设数据
-    init_db()
-    seed_default_presets()
-    seed_default_admin()
-    migrate_user_secret_storage()
+    await run_in_threadpool(init_db)
+    await run_in_threadpool(seed_default_presets)
+    await run_in_threadpool(seed_default_admin)
+    await run_in_threadpool(migrate_user_secret_storage)
     yield
 
 
@@ -33,4 +37,5 @@ def health_check():
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(_, exc: Exception):
     # 统一兜底，避免把内部错误栈直接暴露给客户端
+    logger.exception("Unhandled server exception", exc_info=exc)
     return JSONResponse(status_code=500, content={"detail": "服务器内部错误"})

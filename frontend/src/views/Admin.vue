@@ -135,7 +135,7 @@ onMounted(loadPage);
             <td>{{ user.world_entries_used_today }}</td>
             <td>{{ user.model_call_limit }}</td>
             <td>{{ user.model_calls_used_today }}</td>
-            <td>{{ user.api_mode === 'custom' ? '是' : '否' }}</td>
+            <td>{{ user.has_custom_api_key ? '是' : '否' }}</td>
             <td>
               <button class="link-btn" type="button" @click="openQuotaDialog(user)">修改次数</button>
             </td>

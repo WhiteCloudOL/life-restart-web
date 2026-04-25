@@ -6,6 +6,11 @@ from sqlmodel import Session, select
 
 from app.core.app_config import get_app_config
 from app.core.world_config import StartupPresetConfig, get_world_config
+from app.core.prompt_templates import (
+    END_SUMMARY_FALLBACK_TEXT,
+    END_SUMMARY_SYSTEM_PROMPT,
+    build_end_summary_user_prompt,
+)
 from app.core.deps import get_current_user, get_session
 from app.models.game_session import GameSession
 from app.models.preset import Preset
@@ -158,20 +163,15 @@ def _build_end_summary(
     messages = [
         {
             "role": "system",
-            "content": (
-                "你是人生模拟总结助手。"
-                "请用简体中文输出一段 120-220 字的结局总结。"
-                "要求：1）概括关键转折 2）评价角色特质与代价 3）给出一句后续建议。"
-                "仅输出纯文本，不要 Markdown。"
-            ),
+            "content": END_SUMMARY_SYSTEM_PROMPT,
         },
         {
             "role": "user",
-            "content": (
-                f"世界: {preset_title}\n"
-                f"结束原因: {end_reason}\n"
-                f"最终属性: {json.dumps(final_stats, ensure_ascii=False)}\n"
-                f"最近事件: {json.dumps(recent_history, ensure_ascii=False)}"
+            "content": build_end_summary_user_prompt(
+                preset_title=preset_title,
+                end_reason=end_reason,
+                final_stats=final_stats,
+                recent_history=recent_history,
             ),
         },
     ]
@@ -181,7 +181,7 @@ def _build_end_summary(
             return summary
     except HTTPException:
         pass
-    return "这一生在关键抉择与外部冲击中走到了终点。你展现了鲜明的性格与行动力，也为部分冒险付出了代价。若再次启程，建议围绕核心短板提前布局，在高风险机会前先准备兜底资源。"
+    return END_SUMMARY_FALLBACK_TEXT
 
 
 @router.get("/presets", response_model=List[PresetRead])
