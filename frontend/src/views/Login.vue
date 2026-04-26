@@ -54,7 +54,7 @@ const onSubmit = async (): Promise<void> => {
 
 <template>
   <AuthCard title="欢迎回来" subtitle="继续你的 AI 人生推演">
-    <form class="form" @submit.prevent="onSubmit">
+    <form class="grid gap-5" @submit.prevent="onSubmit">
       <BaseInput
         v-model="username"
         label="用户名"
@@ -73,33 +73,14 @@ const onSubmit = async (): Promise<void> => {
         :max-length="PASSWORD_MAX_LENGTH"
         @blur="validateForm"
       />
-      <p v-if="globalError" class="error">{{ globalError }}</p>
+      <p v-if="globalError" class="text-sm text-red-500">{{ globalError }}</p>
       <BaseButton type="submit" :loading="authStore.isLoggingIn" :disabled="!canSubmit">
         {{ authStore.isLoggingIn ? '登录中...' : '登录' }}
       </BaseButton>
     </form>
-    <p class="foot">
+    <p class="mt-6 text-sm text-zinc-500">
       没有账号？
-      <RouterLink to="/register">去注册</RouterLink>
+      <RouterLink to="/register" class="font-medium text-zinc-900 transition-colors hover:text-zinc-600">去注册</RouterLink>
     </p>
   </AuthCard>
 </template>
-
-<style scoped>
-.form {
-  display: grid;
-  gap: 14px;
-}
-
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 13px;
-}
-
-.foot {
-  margin: 16px 0 0;
-  color: var(--subtext);
-  font-size: 14px;
-}
-</style>
