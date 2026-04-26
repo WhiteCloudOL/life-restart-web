@@ -1,13 +1,14 @@
 <script setup lang="ts">
-import { onMounted } from 'vue';
+import { computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
-import BaseButton from '@/components/BaseButton.vue';
 import { useAuthStore } from '@/stores/useAuthStore';
 import { useGameStore } from '@/stores/useGameStore';
 
 const authStore = useAuthStore();
 const gameStore = useGameStore();
 const router = useRouter();
+
+const worlds = computed(() => gameStore.presets);
 
 const onStart = async (presetId: number): Promise<void> => {
   try {
@@ -32,124 +33,74 @@ onMounted(() => {
 </script>
 
 <template>
-  <section class="hero">
-    <p class="tag">AI 人生重开模拟器</p>
-    <h1>世界大厅</h1>
-    <p class="subtitle">选择一个开局世界，先完成属性分配，再开始你独一无二的人生线路。</p>
-  </section>
+  <section class="space-y-10 pb-16 pt-6 lg:pt-10">
+    <div
+      class="relative overflow-hidden rounded-[2rem] border border-zinc-200/60 bg-white/80 px-6 py-8 shadow-[0_24px_80px_rgba(24,24,27,0.06)] ring-1 ring-zinc-900/5 backdrop-blur-xl lg:px-10 lg:py-12"
+    >
+      <div
+        class="pointer-events-none absolute inset-x-10 top-0 h-24 rounded-full bg-[radial-gradient(circle_at_center,rgba(24,24,27,0.05),transparent_72%)]"
+      />
+      <div class="relative mx-auto max-w-3xl text-center">
+        <p class="text-xs font-semibold uppercase tracking-[0.32em] text-zinc-500">Observer Mode</p>
+        <h1 class="mt-4 text-4xl font-bold tracking-tight text-zinc-900 lg:text-5xl">世界大厅</h1>
+        <p class="mx-auto mt-5 max-w-2xl text-sm leading-8 text-zinc-500 lg:text-[15px]">
+          选择一个世界切面，先完成开局设定，再以更高维的观测视角，看见一段人生如何被选择缓慢雕刻。
+        </p>
+      </div>
+    </div>
 
-  <section class="grid">
-    <article v-for="preset in gameStore.presets" :key="preset.id" class="card">
-      <h3 class="title">{{ preset.title }}</h3>
-      <p>{{ preset.description }}</p>
-      <p class="worldview">{{ preset.worldview }}</p>
-      <p class="meta">属性总点上限：{{ preset.max_attribute_points }}</p>
-      <BaseButton :loading="gameStore.isActionPending" @click="onStart(preset.id)">
-        配置并进入
-      </BaseButton>
-    </article>
-  </section>
+    <section
+      class="max-w-7xl mx-auto grid grid-cols-1 gap-6 px-4 py-12 md:grid-cols-2 lg:grid-cols-3 lg:gap-8"
+    >
+      <article
+        v-for="preset in worlds"
+        :key="preset.id"
+        class="group relative flex min-h-[22rem] flex-col rounded-2xl border border-zinc-200/50 bg-white p-6 shadow-sm transition-all duration-500 hover:-translate-y-1 hover:border-zinc-300 hover:shadow-xl hover:shadow-zinc-200/40"
+      >
+        <div class="mb-5 flex items-start justify-between gap-4">
+          <div>
+            <h3 class="mb-2.5 text-[1.15rem] font-bold text-zinc-800">{{ preset.title }}</h3>
+            <p class="text-[11px] uppercase tracking-[0.22em] text-zinc-400">
+              {{ preset.is_custom ? 'Custom World' : 'Preset World' }}
+            </p>
+          </div>
+          <span
+            class="inline-flex items-center rounded-full bg-zinc-100 px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-zinc-500 ring-1 ring-inset ring-zinc-200"
+          >
+            {{ preset.character_options.length }} 人设
+          </span>
+        </div>
 
-  <section v-if="!gameStore.isLoadingPresets && gameStore.presets.length === 0" class="empty">
-    暂无可用预设，请稍后刷新。
+        <p class="mb-4 text-[13px] leading-relaxed text-zinc-500 line-clamp-3">{{ preset.description }}</p>
+        <p class="mb-6 text-[13px] leading-7 text-zinc-500/90 line-clamp-4 flex-grow">{{ preset.worldview }}</p>
+
+        <span class="mb-4 inline-block rounded bg-zinc-50 px-2 py-1 font-mono text-[11px] text-zinc-400">
+          属性点上限 {{ preset.max_attribute_points }}
+        </span>
+
+        <button
+          type="button"
+          class="w-full rounded-xl border border-zinc-200/50 bg-zinc-50 py-2.5 text-sm font-medium text-zinc-600 transition-all group-hover:border-zinc-800 group-hover:bg-zinc-800 group-hover:text-white"
+          :disabled="gameStore.isActionPending"
+          @click="onStart(preset.id)"
+        >
+          {{ gameStore.isActionPending ? '正在进入...' : '配置并进入' }}
+        </button>
+      </article>
+    </section>
+
+    <section
+      v-if="gameStore.isLoadingPresets"
+      class="mx-auto max-w-7xl px-4 text-center text-sm text-zinc-500"
+    >
+      正在整理可进入的世界...
+    </section>
+
+    <section
+      v-else-if="worlds.length === 0"
+      class="mx-auto max-w-3xl rounded-[1.75rem] border border-dashed border-zinc-200 bg-white/70 px-6 py-12 text-center text-sm text-zinc-500 ring-1 ring-zinc-900/5"
+    >
+      暂无可用预设，请稍后刷新。
+    </section>
   </section>
 </template>
-
-<style scoped>
-.hero {
-  margin-bottom: 22px;
-  padding: 24px 22px 18px;
-  border-radius: 24px;
-  border: 1px solid var(--line);
-  background: linear-gradient(130deg, rgba(132, 169, 140, 0.14), rgba(232, 208, 162, 0.18));
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shadow-soft);
-}
-
-.tag {
-  margin: 0 0 8px;
-  color: var(--accent);
-  font-size: 12px;
-  letter-spacing: 1px;
-}
-
-h1 {
-  margin: 0;
-  font-size: clamp(28px, 4vw, 40px);
-  color: var(--title);
-  font-family: var(--font-serif);
-}
-
-.subtitle {
-  margin: 10px 0 0;
-  color: var(--subtext);
-}
-
-.grid {
-  display: grid;
-  grid-template-columns: repeat(1, minmax(0, 1fr));
-  gap: 18px;
-}
-
-@media (min-width: 768px) {
-  .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
-@media (min-width: 1024px) {
-  .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-}
-
-.card {
-  padding: 18px;
-  border-radius: 24px;
-  border: 1px solid var(--line);
-  background:
-    linear-gradient(165deg, rgba(255, 255, 255, 0.84), rgba(248, 250, 252, 0.74)),
-    linear-gradient(180deg, rgba(42, 157, 143, 0.08), rgba(232, 208, 162, 0.06));
-  backdrop-filter: blur(14px);
-  display: grid;
-  gap: 12px;
-  box-shadow: var(--shadow-soft);
-  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
-}
-
-.card:hover {
-  transform: translateY(-4px);
-  border-color: var(--line-strong);
-  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.08);
-}
-
-.title {
-  margin: 0;
-  color: var(--title);
-  font-family: var(--font-serif);
-  font-size: 24px;
-}
-
-.card p {
-  margin: 0;
-  color: var(--subtext);
-  line-height: 1.8;
-}
-
-.worldview {
-  min-height: 60px;
-  font-size: 13px;
-  line-height: 1.5;
-}
-
-.meta {
-  margin: 0;
-  font-size: 12px;
-  color: var(--accent);
-}
-
-.empty {
-  margin-top: 18px;
-  color: var(--subtext);
-}
-</style>

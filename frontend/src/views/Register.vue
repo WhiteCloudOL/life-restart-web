@@ -70,7 +70,7 @@ const onSubmit = async (): Promise<void> => {
 
 <template>
   <AuthCard title="创建新角色" subtitle="注册后即可开启你的第一段人生轨迹">
-    <form class="form" @submit.prevent="onSubmit">
+    <form class="grid gap-5" @submit.prevent="onSubmit">
       <BaseInput
         v-model="form.username"
         label="用户名"
@@ -100,47 +100,18 @@ const onSubmit = async (): Promise<void> => {
         :max-length="PASSWORD_MAX_LENGTH"
         @blur="validateForm"
       />
-      <p v-if="globalError" class="error">{{ globalError }}</p>
-      <p v-if="successMessage" class="success">{{ successMessage }}</p>
+      <p v-if="globalError" class="text-sm text-red-500">{{ globalError }}</p>
+      <p v-if="successMessage" class="text-sm text-emerald-600">{{ successMessage }}</p>
       <BaseButton type="submit" :loading="isSubmitting" :disabled="!canSubmit">
         {{ isSubmitting ? '提交中...' : '创建账号' }}
       </BaseButton>
     </form>
-    <p class="foot">
+    <p class="mt-6 text-sm text-zinc-500">
       已有账号？
-      <RouterLink to="/login">去登录</RouterLink>
+      <RouterLink to="/login" class="font-medium text-zinc-900 transition-colors hover:text-zinc-600">去登录</RouterLink>
     </p>
-    <p class="hint">用户名最少 {{ USERNAME_MIN_LENGTH }} 位，密码需含大小写字母、数字与特殊字符。</p>
+    <p class="mt-4 text-xs leading-6 text-zinc-400">
+      用户名最少 {{ USERNAME_MIN_LENGTH }} 位，密码需含大小写字母、数字与特殊字符。
+    </p>
   </AuthCard>
 </template>
-
-<style scoped>
-.form {
-  display: grid;
-  gap: 14px;
-}
-
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 13px;
-}
-
-.success {
-  margin: 0;
-  color: var(--accent-2);
-  font-size: 13px;
-}
-
-.foot {
-  margin: 16px 0 0;
-  color: var(--subtext);
-  font-size: 14px;
-}
-
-.hint {
-  margin: 12px 0 0;
-  color: rgba(134, 164, 194, 0.8);
-  font-size: 12px;
-}
-</style>

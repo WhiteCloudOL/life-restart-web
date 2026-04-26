@@ -88,7 +88,6 @@ const onSave = async (): Promise<void> => {
       custom_base_url: form.custom_base_url.trim() || null,
     };
 
-    // 空值不覆盖 Key，防止误清空；如果要清空可在后续加“清空 Key”显式开关。
     if (form.custom_api_key.trim()) {
       payload.custom_api_key = form.custom_api_key.trim();
     }
@@ -108,110 +107,83 @@ const onSave = async (): Promise<void> => {
 </script>
 
 <template>
-  <section class="panel">
-    <h1>个人设置</h1>
-    <p class="hint">用户名不可修改。可修改昵称并切换默认 API / 自定义 API（自定义模式不计额度）。</p>
-    <form class="form" @submit.prevent="onSave">
-      <BaseInput v-model="form.username" label="用户名（不可修改）" autocomplete="username" disabled />
-      <BaseInput v-model="form.nickname" label="昵称" autocomplete="nickname" placeholder="用于展示的昵称" />
-      <fieldset class="mode-group">
-        <legend>调用模式</legend>
-        <label>
-          <input v-model="form.api_mode" type="radio" value="default" />
-          <span>默认 API（计入额度）</span>
-        </label>
-        <label>
-          <input v-model="form.api_mode" type="radio" value="custom" />
-          <span>自定义 API（不计额度）</span>
-        </label>
-      </fieldset>
-      <BaseInput
-        v-model="form.custom_model_name"
-        label="自定义模型名"
-        placeholder="例如 gpt-4o-mini"
-        :disabled="form.api_mode === 'default'"
-      />
-      <BaseInput
-        v-model="form.custom_base_url"
-        label="自定义 Base URL"
-        placeholder="例如 https://api.openai.com/v1"
-        :disabled="form.api_mode === 'default'"
-      />
-      <BaseInput
-        v-model="form.custom_api_key"
-        label="自定义 API Key"
-        type="password"
-        placeholder="留空表示不修改；输入新值会覆盖"
-        :disabled="form.api_mode === 'default'"
-      />
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-      <p v-if="successMessage" class="success">{{ successMessage }}</p>
-      <BaseButton type="submit" :loading="isSaving">保存设置</BaseButton>
-    </form>
+  <section class="px-4 pb-16 pt-6 lg:pt-10">
+    <div
+      class="mx-auto w-full max-w-4xl rounded-[2rem] border border-zinc-200/60 bg-white/90 p-8 shadow-[0_24px_80px_rgba(24,24,27,0.07)] ring-1 ring-zinc-900/5 backdrop-blur-2xl lg:p-10"
+    >
+      <div class="mb-8">
+        <p class="text-xs font-semibold uppercase tracking-[0.28em] text-zinc-500">Profile Settings</p>
+        <h1 class="mt-4 text-3xl font-bold tracking-tight text-zinc-900">个人设置</h1>
+        <p class="mt-3 max-w-2xl text-sm leading-7 text-zinc-500">
+          用户名不可修改。你可以更新昵称，并在默认 API 与自定义 API 模式之间切换。
+        </p>
+      </div>
+
+      <form class="grid gap-6" @submit.prevent="onSave">
+        <div class="grid gap-5 lg:grid-cols-2">
+          <BaseInput v-model="form.username" label="用户名（不可修改）" autocomplete="username" disabled />
+          <BaseInput v-model="form.nickname" label="昵称" autocomplete="nickname" placeholder="用于展示的昵称" />
+        </div>
+
+        <fieldset class="rounded-[1.5rem] border border-zinc-200/60 bg-zinc-50/70 p-5 ring-1 ring-zinc-900/5">
+          <legend class="px-2 text-sm font-medium text-zinc-500">调用模式</legend>
+          <div class="mt-3 grid gap-3 sm:grid-cols-2">
+            <label
+              class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all"
+              :class="form.api_mode === 'default' ? 'border-zinc-800 bg-white ring-1 ring-zinc-800/10' : 'border-zinc-200 bg-white/70'"
+            >
+              <input v-model="form.api_mode" type="radio" value="default" class="mt-1 h-4 w-4 accent-zinc-800" />
+              <span>
+                <span class="block text-sm font-medium text-zinc-800">默认 API</span>
+                <span class="mt-1 block text-xs leading-6 text-zinc-500">计入系统额度，适合直接开始体验。</span>
+              </span>
+            </label>
+            <label
+              class="flex cursor-pointer items-start gap-3 rounded-2xl border p-4 transition-all"
+              :class="form.api_mode === 'custom' ? 'border-zinc-800 bg-white ring-1 ring-zinc-800/10' : 'border-zinc-200 bg-white/70'"
+            >
+              <input v-model="form.api_mode" type="radio" value="custom" class="mt-1 h-4 w-4 accent-zinc-800" />
+              <span>
+                <span class="block text-sm font-medium text-zinc-800">自定义 API</span>
+                <span class="mt-1 block text-xs leading-6 text-zinc-500">不计平台额度，适合接入自己的模型与网关。</span>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+
+        <div class="grid gap-5 lg:grid-cols-2">
+          <BaseInput
+            v-model="form.custom_model_name"
+            label="自定义模型名"
+            placeholder="例如 gpt-4o-mini"
+            :disabled="form.api_mode === 'default'"
+          />
+          <BaseInput
+            v-model="form.custom_base_url"
+            label="自定义 Base URL"
+            placeholder="例如 https://api.openai.com/v1"
+            :disabled="form.api_mode === 'default'"
+          />
+        </div>
+
+        <BaseInput
+          v-model="form.custom_api_key"
+          label="自定义 API Key"
+          type="password"
+          placeholder="留空表示不修改；输入新值会覆盖"
+          :disabled="form.api_mode === 'default'"
+        />
+
+        <div class="flex flex-col gap-3">
+          <p v-if="errorMessage" class="text-sm text-red-500">{{ errorMessage }}</p>
+          <p v-if="successMessage" class="text-sm text-emerald-600">{{ successMessage }}</p>
+        </div>
+
+        <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <BaseButton type="submit" :loading="isSaving" :block="false">保存设置</BaseButton>
+          <p class="text-xs text-zinc-500">自定义 Key 留空时不会覆盖已有值。</p>
+        </div>
+      </form>
+    </div>
   </section>
 </template>
-
-<style scoped>
-.panel {
-  padding: 24px;
-  border: 1px solid var(--line);
-  border-radius: 24px;
-  background: var(--panel);
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shadow-soft);
-  width: min(760px, 100%);
-}
-
-h1 {
-  margin: 0;
-  color: var(--title);
-  font-family: var(--font-serif);
-}
-
-.hint {
-  margin: 10px 0 0;
-  color: var(--subtext);
-  line-height: 1.75;
-}
-
-.form {
-  display: grid;
-  gap: 14px;
-  margin-top: 20px;
-}
-
-.mode-group {
-  margin: 0;
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px 14px;
-  display: grid;
-  gap: 10px;
-  background: rgba(255, 255, 255, 0.66);
-}
-
-.mode-group legend {
-  padding: 0 6px;
-  color: var(--subtext);
-  font-size: 13px;
-}
-
-.mode-group label {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  color: var(--text);
-}
-
-.error {
-  margin: 0;
-  color: var(--danger);
-  font-size: 13px;
-}
-
-.success {
-  margin: 0;
-  color: var(--accent-2);
-  font-size: 13px;
-}
-</style>

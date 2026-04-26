@@ -27,7 +27,11 @@ const emit = defineEmits<{
   (event: 'blur'): void;
 }>();
 
-const fieldClass = computed<string>(() => (props.error ? 'input is-error' : 'input'));
+const fieldClass = computed<string>(() =>
+  props.error
+    ? 'border-red-200 bg-red-50/50 focus:border-red-400 focus:ring-red-200'
+    : 'border-zinc-200 bg-zinc-50/50 focus:border-zinc-800 focus:ring-zinc-800/20',
+);
 
 const onInput = (event: Event): void => {
   const target = event.target as HTMLInputElement;
@@ -36,61 +40,20 @@ const onInput = (event: Event): void => {
 </script>
 
 <template>
-  <label class="field">
-    <span class="label">{{ label }}</span>
+  <label class="grid gap-2">
+    <span class="text-sm font-medium text-zinc-600">{{ label }}</span>
     <input
-      :class="fieldClass"
       :value="modelValue"
       :type="type"
       :placeholder="placeholder"
       :autocomplete="autocomplete"
       :disabled="disabled"
       :maxlength="maxLength"
+      class="w-full rounded-xl border px-4 py-3 text-sm text-zinc-700 placeholder-zinc-400 transition-all focus:outline-none focus:ring-2 disabled:cursor-not-allowed disabled:opacity-60"
+      :class="fieldClass"
       @input="onInput"
       @blur="$emit('blur')"
     />
-    <span v-if="error" class="error">{{ error }}</span>
+    <span v-if="error" class="text-xs text-red-500">{{ error }}</span>
   </label>
 </template>
-
-<style scoped>
-.field {
-  display: grid;
-  gap: 7px;
-}
-
-.label {
-  font-size: 13px;
-  color: var(--subtext);
-}
-
-.input {
-  height: 42px;
-  border-radius: 14px;
-  border: 1px solid var(--line);
-  padding: 0 12px;
-  background: rgba(255, 255, 255, 0.92);
-  color: var(--text);
-  transition: border-color 0.2s ease, box-shadow 0.2s ease;
-}
-
-.input:focus {
-  outline: none;
-  border-color: rgba(76, 201, 240, 0.55);
-  box-shadow: 0 0 0 3px rgba(76, 201, 240, 0.15);
-}
-
-.input.is-error {
-  border-color: rgba(255, 92, 122, 0.65);
-}
-
-.input:disabled {
-  opacity: 0.65;
-  cursor: not-allowed;
-}
-
-.error {
-  font-size: 12px;
-  color: var(--danger);
-}
-</style>
