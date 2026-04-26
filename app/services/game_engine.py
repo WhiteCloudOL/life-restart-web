@@ -1,6 +1,5 @@
 import json
 import re
-from typing import Any, Dict, List
 
 from app.core.app_config import get_app_config
 from app.core.prompt_templates import (
@@ -12,7 +11,7 @@ from app.core.prompt_templates import (
 PHYSIQUE_DEATH_KEYS = {"体质", "physique", "constitution"}
 
 
-def parse_json_object(data: str) -> Dict[str, Any]:
+def parse_json_object(data: str) -> dict[str, object]:
     try:
         parsed = json.loads(data)
         return parsed if isinstance(parsed, dict) else {}
@@ -20,7 +19,7 @@ def parse_json_object(data: str) -> Dict[str, Any]:
         return {}
 
 
-def parse_json_array(data: str) -> List[Dict[str, Any]]:
+def parse_json_array(data: str) -> list[dict[str, object]]:
     try:
         parsed = json.loads(data)
         return parsed if isinstance(parsed, list) else []
@@ -32,11 +31,11 @@ def build_start_prompt(
     preset_title: str,
     preset_description: str,
     preset_worldview: str,
-    initial_stats: Dict[str, Any],
-    attribute_definitions: List[Dict[str, str]] | None,
+    initial_stats: dict[str, object],
+    attribute_definitions: list[dict[str, str]] | None,
     selected_character_setting: str | None,
     custom_prompt: str | None,
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     character_setting = selected_character_setting or "未指定"
     user_hint = (custom_prompt or "").strip() or "无"
     definitions = attribute_definitions or []
@@ -61,10 +60,10 @@ def build_start_prompt(
 
 
 def build_next_prompt(
-    current_stats: Dict[str, Any],
-    event_history: List[Dict[str, Any]],
+    current_stats: dict[str, object],
+    event_history: list[dict[str, object]],
     user_choice: str,
-) -> List[Dict[str, str]]:
+) -> list[dict[str, str]]:
     # 截取最近记录避免 prompt 过长
     recent_history = event_history[-10:]
     return [
@@ -83,7 +82,7 @@ def build_next_prompt(
     ]
 
 
-def _sanitize_next_choices(raw_choices: Any, ended: bool) -> List[str]:
+def _sanitize_next_choices(raw_choices: object, ended: bool) -> list[str]:
     app_config = get_app_config()
     fallback_choices = app_config.gameplay.default_next_choices
     max_choices = app_config.gameplay.max_next_choices
@@ -94,7 +93,7 @@ def _sanitize_next_choices(raw_choices: Any, ended: bool) -> List[str]:
     if not isinstance(raw_choices, list):
         return fallback_choices
 
-    cleaned: List[str] = []
+    cleaned: list[str] = []
     for item in raw_choices:
         if not isinstance(item, str):
             continue
@@ -114,16 +113,16 @@ def _sanitize_next_choices(raw_choices: Any, ended: bool) -> List[str]:
     return cleaned
 
 
-def sanitize_llm_json_payload(payload: Dict[str, Any]) -> tuple[str, Dict[str, Any], bool, List[str]]:
+def sanitize_llm_json_payload(payload: dict[str, object]) -> tuple[str, dict[str, object], bool, list[str]]:
     event = str(payload.get("event", "故事继续推进。")).strip() or "故事继续推进。"
     effects_raw = payload.get("effects", {})
-    effects: Dict[str, Any] = effects_raw if isinstance(effects_raw, dict) else {}
+    effects: dict[str, object] = effects_raw if isinstance(effects_raw, dict) else {}
     ended = bool(payload.get("ended", False))
     next_choices = _sanitize_next_choices(payload.get("next_choices"), ended)
     return event, effects, ended, next_choices
 
 
-def should_force_end_by_death(event: str, stats: Dict[str, Any]) -> bool:
+def should_force_end_by_death(event: str, stats: dict[str, object]) -> bool:
     app_config = get_app_config()
     normalized_event = (event or "").lower()
     for keyword in app_config.gameplay.death_event_keywords:
@@ -141,7 +140,7 @@ def should_force_end_by_death(event: str, stats: Dict[str, Any]) -> bool:
     return False
 
 
-def split_event_into_segments(event: str) -> List[str]:
+def split_event_into_segments(event: str) -> list[str]:
     """
     将一次性大段文本拆成短段，便于前端逐段展示。
     优先按自然段拆分；若缺少换行，再按句号等标点分块。
@@ -155,7 +154,7 @@ def split_event_into_segments(event: str) -> List[str]:
         return paragraphs
 
     sentences = re.split(r"(?<=[。！？!?])", normalized)
-    chunks: List[str] = []
+    chunks: list[str] = []
     bucket = ""
     for sentence in sentences:
         piece = sentence.strip()
@@ -175,7 +174,7 @@ def split_event_into_segments(event: str) -> List[str]:
     return chunks if chunks else [normalized]
 
 
-def apply_effects_to_stats(current_stats: Dict[str, Any], effects: Dict[str, Any]) -> Dict[str, Any]:
+def apply_effects_to_stats(current_stats: dict[str, object], effects: dict[str, object]) -> dict[str, object]:
     """
     核心安全点：
     后端统一计算数值变化，不信任前端传入的任何属性结果，避免篡改。
@@ -195,7 +194,7 @@ def apply_effects_to_stats(current_stats: Dict[str, Any], effects: Dict[str, Any
     return next_stats
 
 
-def ensure_age_stat(stats: Dict[str, Any], start_age: int = 18) -> Dict[str, Any]:
+def ensure_age_stat(stats: dict[str, object], start_age: int = 18) -> dict[str, object]:
     next_stats = dict(stats)
     current_age = next_stats.get("age")
     if isinstance(current_age, (int, float)):
@@ -205,7 +204,7 @@ def ensure_age_stat(stats: Dict[str, Any], start_age: int = 18) -> Dict[str, Any
     return next_stats
 
 
-def advance_age(stats: Dict[str, Any], age_step: int = 1) -> Dict[str, Any]:
+def advance_age(stats: dict[str, object], age_step: int = 1) -> dict[str, object]:
     next_stats = ensure_age_stat(stats)
     step = max(0, int(age_step))
     next_stats["age"] = max(0, int(next_stats.get("age", 0)) + step)

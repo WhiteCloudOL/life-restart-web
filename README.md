@@ -4,190 +4,190 @@
 [![Vue3](https://img.shields.io/badge/Vue.js-3.5-4FC08D.svg?style=flat&logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![Vite](https://img.shields.io/badge/Vite-7-646CFF.svg?style=flat&logo=vite&logoColor=white)](https://vitejs.dev/)
 [![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-3.4-38B2AC.svg?style=flat&logo=tailwind-css&logoColor=white)](https://tailwindcss.com/)
-[![python](https://img.shields.io/badge/Python-3.11+-blue.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![Python](https://img.shields.io/badge/Python-3.11+-blue.svg?style=flat&logo=python&logoColor=white)](https://www.python.org/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](https://opensource.org/licenses/MIT)
 
 > 全栈项目：FastAPI + Vue 3（Vite + Pinia + Tailwind）  
 > 目标：构建可商用的 AI 人生重开模拟器（鉴权、权限、额度、管理员能力齐全）  
-> 项目使用Vibe Coding  
+> 项目使用 Vibe Coding 构建
 
 ---
 
+基于 `FastAPI` 和 `Vue 3` 的全栈 AI 人生模拟项目，支持用户鉴权、管理员配额管理、自定义模型接入、Prompt 注入拦截、速率限制与本地一键联调。
+
 ## ✨ 核心特性
 
-- 🎮 **沉浸式 AI 模拟**：结合大语言模型，体验完全自由且充满变数的人生抉择。
-- 🛡️ **生产级安全设计**：用户 API Key 强加密存储、前端零泄露、支持强制 HTTPS。
-- 👥 **完善的账户系统**：支持用户注册、登录、额度限制与个人配额管理。
-- 🛠️ **管理员面板**：提供完整的用户管理与系统配置监控视图。
-- ⚡ **极致开发体验**：支持前后端一键联动启动，配置项自动同步。
+- **现代全栈架构**
+  - **后端**: FastAPI + SQLModel + SQLAlchemy Async + LiteLLM
+  - **前端**: Vue 3 + Vite + Pinia + Tailwind CSS
+- **工程化与规范**
+  - 后端采用应用工厂、路由/服务/仓储分层、异步 SQLite 会话与配置预热。
+  - 前端采用组合式 API、页面逻辑拆分为 composables 与无状态组件。
+- **极致的开发体验**
+  - 本地开发支持 `uv run python main.py` **一键拉起**后端与 Vite。
+- **生产级部署支持**
+  - 生产环境支持在 FastAPI 中挂载 `frontend/dist` 静态产物，实现单服务一键部署。
+  - 支持前后端分离部署（Nginx/CDN）。
+- **完善的安全机制**
+  - JWT 鉴权、密码 bcrypt 哈希、用户 API Key Fernet 加密。
+  - 多级速率限制、HTTPS 强制中间件、Prompt 注入拦截。
 
-## 🧩 技术栈
-
-- **后端**: FastAPI, SQLModel (SQLite), LiteLLM, PyJWT, Cryptography
-- **前端**: Vue 3 (Composition API), Vite, Tailwind CSS, Pinia, Vue Router
-- **包管理**: 后端推荐使用现代化工具 [uv](https://github.com/astral-sh/uv) 提供极速依赖安装，前端使用 npm。
+---
 
 ## 📂 项目结构
 
 ```text
 .
-├── app/                  # FastAPI 后端核心代码
-├── config/               # 配置文件目录
-│   ├── app_config.toml   # 业务配置（模型、管理员、额度、前端入口等）
-│   └── world_config.toml # 世界观与游戏预设配置
-├── data/                 # SQLite 数据库存储目录
-├── frontend/             # Vue 3 前端源码
-├── .env                  # 本地环境变量（需手动创建，勿提交真实密钥）
-├── .env.example          # 环境变量配置模板
-├── main.py               # 一键启动入口（可同时拉起前后端服务）
-├── pyproject.toml        # 后端项目清单
-└── README.md             # 项目说明
+├── app/                     # FastAPI 后端核心
+│   ├── api/                 # 路由入口
+│   ├── core/                # 配置、安全、中间件、依赖
+│   ├── db/                  # 数据库会话与初始化
+│   ├── models/              # 数据模型
+│   ├── repositories/        # 数据访问层
+│   ├── schemas/             # Pydantic V2 模型
+│   └── services/            # 业务服务层
+├── config/                  # 业务与游戏预设配置
+│   ├── app_config.toml      # 运营配置 (配额、模型等)
+│   └── world_config.toml    # 游戏世界与预设配置
+├── data/                    # SQLite 数据文件目录
+├── frontend/                # Vue 3 前端工程
+├── tests/                   # 自动化测试
+├── .env.example             # 环境变量模板
+├── main.py                  # 本地开发一键联调入口
+└── pyproject.toml           # Python 项目依赖清单 (uv)
 ```
 
 ---
 
 ## 🚀 快速开始
 
-### 1. 环境准备
+### 1. 运行环境要求
 
-确保您的操作系统中已安装以下组件：
-- **Python** >= 3.11
-- **Node.js** >= 20
-- **[uv](https://docs.astral.sh/uv/getting-started/installation/)**：极速的 Python 包管理器（强烈推荐）
+- Python `3.11+`
+- Node.js `20+`
+- [uv](https://github.com/astral-sh/uv) (推荐的 Python 包管理器)
 
-### 2. 获取代码
+### 2. 获取代码与安装依赖
 
 ```bash
+# 克隆仓库
 git clone https://github.com/WhiteCloudOL/life-restart-web.git
 cd life-restart-web
-```
 
-### 3. 安装依赖
+# 使用 uv 安装后端依赖 (推荐)
+uv sync
 
-#### 后端 (使用 `uv`)
-```bash
-# 创建虚拟环境
-uv venv
-
-# 激活虚拟环境
-# Windows:
-.venv\Scripts\activate
-# macOS/Linux:
-# source .venv/bin/activate
-
-# 安装生产依赖
-uv pip install -r requirements.txt
-
-# (可选) 若需参与开发或运行测试，请安装开发依赖
-uv pip install -r requirements-dev.txt
-```
-
-#### 前端
-```bash
+# 安装前端依赖
 cd frontend
 npm install
 cd ..
 ```
 
+### 3. 环境配置
+
+复制环境变量模板并根据需要修改：
+
+```bash
+# Linux / macOS
+cp .env.example .env
+
+# Windows
+Copy-Item .env.example .env
+```
+
+*注意：系统启动时会自动依据 `config/*.template.toml` 创建 `app_config.toml` 和 `world_config.toml`。*
+
+### 4. 一键开发启动
+
+```bash
+uv run python main.py
+```
+
+该命令会：
+1. 启动 FastAPI 后端 (`http://127.0.0.1:8100`)
+2. 自动启动 Vite 前端开发服务器 (`http://127.0.0.1:8101`)
+3. 您可以通过访问前端地址开始调试。
+
+*(或者你可以分别启动：`uv run uvicorn app.main:app --reload` 和 `cd frontend && npm run dev`)*
+
 ---
 
-## ⚙️ 配置说明
+## ⚙️ 核心配置说明
 
-在运行项目前，您**必须**完成必要的配置。
+项目配置分为三层：
 
-### 环境变量 (`.env`)
+### 1. `.env` (系统级配置)
+主要控制运行环境、网络与密钥。
+- `SECRET_KEY`: JWT 密钥 (必填)
+- `USER_DATA_ENCRYPTION_SECRET`: API Key 加密密钥 (必填)
+- `ENVIRONMENT`: `development` / `production` 等
+- `DATABASE_URL`: 数据库连接，默认 SQLite `sqlite:///./data/life_simulator.db`
 
-1. 将环境模板文件拷贝一份并重命名为 `.env`：
+### 2. `config/app_config.toml` (运营配置)
+控制业务逻辑与限制。
+- `[default_model]`: 系统默认调用的 AI 模型及提供商。
+- `[quota]`: 用户每日额度限制。
+- `[rate_limit]`: 接口请求频率限制。
+
+### 3. `config/world_config.toml` (游戏配置)
+控制游戏内容。
+- `[[startup_presets]]`: 游戏开局选项、预设模板、属性面板。
+
+---
+
+## 📦 生产部署
+
+项目支持两种部署模式，您可以根据服务器资源自由选择。
+
+### 模式一：一体化部署 (推荐小型服务)
+
+利用 FastAPI 直接托管构建好的前端静态资源。
+
+1. **构建前端产物**
    ```bash
-   cp .env.example .env
+   cd frontend
+   npm run build
+   cd ..
    ```
-2. **关键安全项替换**（务必修改为强随机字符串）：
-   - `SECRET_KEY`: JWT 签名密钥（至少 32 字符）。
-   - `USER_DATA_ENCRYPTION_SECRET`: 用户密钥在数据库中加密所需的密钥（至少 32 字符，且勿与 JWT 密钥相同）。
-3. **前端联动设置**：
-   - 默认开启 `START_FRONTEND_WITH_BACKEND=true`，通过 `python main.py` 启动时会自动运行 `npm run dev` 拉起前端。
+2. **设置生产环境变量** (`.env`)
+   ```env
+   ENVIRONMENT=production
+   APP_HOST=0.0.0.0
+   APP_PORT=8100
+   ```
+3. **启动服务**
+   ```bash
+   uv run uvicorn app.main:app --host 0.0.0.0 --port 8100 --workers 4
+   ```
+   *服务启动后，访问 `http://your-ip:8100` 即可直接看到前端页面。*
 
-### 业务配置 (`config/app_config.toml`)
+### 模式二：前后端分离部署 (推荐配合 Nginx/CDN)
 
-若此文件不存在，系统会在首次启动时自动从模板 `config/app_config.template.toml` 创建。
-适合产品与运营调整的核心参数包括：
-- `[default_model]`: 系统默认模型参数（在此配置全局 API Key 和 Base URL）。
-- `[default_admin]`: 默认超级管理员账号配置（系统启动时自动检测创建）。
-- `[quota]`: 新注册用户默认每日额度以及管理员可分配的最大上限。
-- `[gameplay]`: 模拟器基础参数设置，如最大选项数、属性点分配总值等。
+1. **后端单独运行**
+   ```bash
+   uv run uvicorn app.main:app --host 127.0.0.1 --port 8100
+   ```
+2. **前端构建并部署到 Nginx**
+   将 `frontend/dist` 部署至您的 Web 服务器，并配置反向代理指向后端 `8100` 端口的 API。
 
----
-
-## 🏃 启动方式
-
-### 方式 A：一键启动（推荐开发时使用）
-
-在项目根目录（确保已安装uv）：
-```bash
-uv sync
-uv run main.py
-```
-> **行为表现**: 
-> 1. 启动 FastAPI 后端服务（默认 `http://127.0.0.1:8100`）。
-> 2. 检测 `.env` 中的 `START_FRONTEND_WITH_BACKEND=true` 后，在新的子进程中自动启动 Vite 前端服务（默认 `http://127.0.0.1:8101`）。
-
-### 方式 B：前后端分开独立部署
-
-**后端**:
-```bash
-uvicorn main:app --reload
-```
-
-**前端**:
-```bash
-cd frontend
-npm run build
-```
+*(详细 Nginx 配置与反代说明请参考源码中的注释或独立文档)*
 
 ---
 
-## 🔒 安全设计
+## 🧪 测试与校验
 
-1. **用户密钥不明文存储**：
-   - 用户自定义填写的 `custom_api_key` 在服务端入库前使用 Fernet 对称加密。
-   - 数据库存储格式严格为密文。系统启动时具备向下兼容的历史明文自动加密迁移能力。
-2. **敏感信息零泄露**：
-   - 任何查询用户信息（如 `/api/user/me`）的接口仅返回脱敏状态值 `has_custom_api_key: true/false`，绝不向前端回传明文 Key。
-3. **强制传输加密**：
-   - 支持设置 `ENFORCE_HTTPS=true`。
-   - 在生产环境下建议开启该选项，系统将严格拒绝任何非 HTTPS 的 API 请求，并支持 `TRUST_X_FORWARDED_PROTO` 适配 Nginx/Traefik 等网关反向代理场景。
-
----
-
-## 📖 API 文档与关键接口
-
-服务成功启动后，后端自动生成并提供 OpenAPI 标准规范接口文档，方便调试：
-- **Swagger UI**: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-- **ReDoc UI**: [http://127.0.0.1:8000/redoc](http://127.0.0.1:8000/redoc)
-
-**常见核心 API 摘要**:
-- `POST /api/auth/register`：用户注册
-- `POST /api/auth/login`：用户登录获取 Token
-- `GET /api/user/me`：获取当前用户信息及配额
-- `POST /api/game/start`：应用人生预设并开启新局
-- `POST /api/game/next`：选择命运并推进下一回合
-- `GET /api/admin/users`：【管理员】分页查询用户列表
-
-详尽的自定义业务说明可参考 [API文档.md](./API文档.md)。
-
----
-
-## 📦 构建与部署
-
-**前端生产环境构建**：
 ```bash
-cd frontend
-npm run build
-```
-这将在 `frontend/dist/` 下生成用于生产环境部署的静态资源。
+# 后端基础测试
+uv run pytest
 
-**后端语法与编译检查**：
-```bash
-python -m compileall app
+# 语法检查
+uv run ruff check .
 ```
 
----
+## 📚 API 文档
+
+在后端服务启动后，您可以访问自动生成的交互式文档：
+- **Swagger UI**: `http://127.0.0.1:8100/docs`
+- **ReDoc**: `http://127.0.0.1:8100/redoc`
+
+人工维护的业务接口说明请参考仓库内的 [`API文档.md`](./API文档.md)。

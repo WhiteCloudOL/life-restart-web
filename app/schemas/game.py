@@ -1,5 +1,3 @@
-from typing import Any, Dict, List
-
 from pydantic import BaseModel, ConfigDict, Field
 
 
@@ -8,7 +6,7 @@ class GameStartRequest(BaseModel):
     selected_character_setting: str | None = Field(default=None, max_length=80)
     custom_worldview: str | None = Field(default=None, max_length=2000)
     custom_character_setting: str | None = Field(default=None, max_length=500)
-    allocated_attributes: Dict[str, int] = Field(default_factory=dict)
+    allocated_attributes: dict[str, int] = Field(default_factory=dict)
     custom_prompt: str | None = Field(default=None, max_length=200)
 
 
@@ -21,8 +19,8 @@ class GameSessionRead(BaseModel):
     id: int
     user_id: int
     preset_id: int
-    current_stats: Dict[str, Any]
-    event_history: List[Dict[str, Any]]
+    current_stats: dict[str, object]
+    event_history: list[dict[str, object]]
     is_ended: bool
 
     model_config = ConfigDict(extra="forbid")
@@ -34,24 +32,24 @@ class PresetRead(BaseModel):
     title: str
     description: str
     worldview: str
-    character_options: List[str]
+    character_options: list[str]
     max_attribute_points: int
     is_custom: bool = False
-    attributes: List[Dict[str, Any]]
+    attributes: list[dict[str, object]]
 
 
 class GameStepResponse(BaseModel):
     model_config = ConfigDict(extra="forbid")
     session_id: int
     event: str
-    event_segments: List[str]
-    current_stats: Dict[str, Any]
+    event_segments: list[str]
+    current_stats: dict[str, object]
     is_ended: bool
     world_entry_limit: int
     world_entries_used_today: int
     model_call_limit: int
     model_calls_used_today: int
-    next_choices: List[str]
+    next_choices: list[str]
     end_reason: str | None = None
     end_summary: str | None = None
 
