@@ -219,7 +219,7 @@ def list_presets(
                 id=custom_preset.id,
                 title=custom_preset.title,
                 description=custom_preset.description,
-                worldview=custom_preset.default_worldview or "请在前端输入你的世界设定",
+                worldview=custom_preset.default_worldview or "自由发挥，随心设定",
                 character_options=[],
                 max_attribute_points=custom_preset.max_attribute_points,
                 is_custom=True,

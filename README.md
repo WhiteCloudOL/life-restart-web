@@ -127,8 +127,8 @@ uv sync
 uv run main.py
 ```
 > **行为表现**: 
-> 1. 启动 FastAPI 后端服务（默认 `http://127.0.0.1:8000`）。
-> 2. 检测 `.env` 中的 `START_FRONTEND_WITH_BACKEND=true` 后，在新的子进程中自动启动 Vite 前端服务（默认 `http://127.0.0.1:5173`）。
+> 1. 启动 FastAPI 后端服务（默认 `http://127.0.0.1:8100`）。
+> 2. 检测 `.env` 中的 `START_FRONTEND_WITH_BACKEND=true` 后，在新的子进程中自动启动 Vite 前端服务（默认 `http://127.0.0.1:8101`）。
 
 ### 方式 B：前后端分开独立部署
 
