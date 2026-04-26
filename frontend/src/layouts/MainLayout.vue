@@ -1,10 +1,11 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
-import { RouterLink, RouterView, useRoute } from 'vue-router';
+import { RouterLink, RouterView, useRoute, useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 const authStore = useAuthStore();
 const route = useRoute();
+const router = useRouter();
 let syncTimer: number | null = null;
 
 const userName = computed<string>(() => authStore.user?.nickname ?? authStore.user?.username ?? '游客');
@@ -26,7 +27,7 @@ const isGameRoute = computed<boolean>(() => route.path === '/game');
 
 const onLogout = (): void => {
   authStore.logout();
-  window.location.replace('/login');
+  void router.replace('/login');
 };
 
 const stopQuotaSync = (): void => {

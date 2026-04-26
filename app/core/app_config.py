@@ -34,6 +34,19 @@ class FrontendConfig(BaseModel):
     route_base: str = "/"
 
 
+class RateLimitConfig(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+    auth_window_seconds: int = Field(default=60, ge=1, le=3600)
+    auth_max_requests: int = Field(default=12, ge=1, le=10000)
+    gameplay_window_seconds: int = Field(default=60, ge=1, le=3600)
+    gameplay_max_requests: int = Field(default=30, ge=1, le=10000)
+    profile_window_seconds: int = Field(default=60, ge=1, le=3600)
+    profile_max_requests: int = Field(default=20, ge=1, le=10000)
+    admin_window_seconds: int = Field(default=60, ge=1, le=3600)
+    admin_max_requests: int = Field(default=60, ge=1, le=10000)
+
+
 class GameplayConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
@@ -75,6 +88,7 @@ class AppConfig(BaseModel):
     default_admin: DefaultAdminConfig = Field(default_factory=DefaultAdminConfig)
     quota: QuotaConfig
     frontend: FrontendConfig = Field(default_factory=FrontendConfig)
+    rate_limit: RateLimitConfig = Field(default_factory=RateLimitConfig)
     gameplay: GameplayConfig = Field(default_factory=GameplayConfig)
 
 

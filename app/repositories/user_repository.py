@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from sqlmodel import select
+from sqlmodel import func, select
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.models.user import User
@@ -19,16 +19,16 @@ class UserRepository:
         return result.first()
 
     async def list_paginated(self, *, offset: int, limit: int) -> list[User]:
-        result = await self.session.exec(select(User).offset(offset).limit(limit))
+        result = await self.session.exec(select(User).order_by(User.id.asc()).offset(offset).limit(limit))
         return result.all()
 
     async def count_all(self) -> int:
-        result = await self.session.exec(select(User))
-        return len(result.all())
+        result = await self.session.exec(select(func.count()).select_from(User))
+        return result.one()
 
     async def count_admins(self) -> int:
-        result = await self.session.exec(select(User).where(User.is_admin == True))
-        return len(result.all())
+        result = await self.session.exec(select(func.count()).select_from(User).where(User.is_admin == True))
+        return result.one()
 
     async def save(self, user: User) -> User:
         self.session.add(user)

@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends
 from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.deps import get_current_user, get_session
+from app.core.rate_limit import gameplay_rate_limiter
 from app.models.user import User
 from app.schemas.game import (
     GameForceExitRequest,
@@ -34,6 +35,7 @@ async def list_presets(
 async def game_start(
     payload: GameStartRequest,
     current_user: User = Depends(get_current_user),
+    _: None = gameplay_rate_limiter,
     service: GameApplicationService = Depends(get_game_service),
 ) -> GameStepResponse:
     return await service.start_game(payload, current_user)
@@ -43,6 +45,7 @@ async def game_start(
 async def game_next(
     payload: GameNextRequest,
     current_user: User = Depends(get_current_user),
+    _: None = gameplay_rate_limiter,
     service: GameApplicationService = Depends(get_game_service),
 ) -> GameStepResponse:
     return await service.advance_game(payload, current_user)
@@ -52,6 +55,7 @@ async def game_next(
 async def force_exit_game(
     payload: GameForceExitRequest,
     current_user: User = Depends(get_current_user),
+    _: None = gameplay_rate_limiter,
     service: GameApplicationService = Depends(get_game_service),
 ) -> GameForceExitResponse:
     return await service.force_exit_game(payload, current_user)

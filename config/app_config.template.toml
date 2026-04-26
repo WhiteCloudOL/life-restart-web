@@ -21,6 +21,16 @@ max_daily_model_call_limit = 20000
 public_origin = "http://127.0.0.1:5173"
 route_base = "/"
 
+[rate_limit]
+auth_window_seconds = 60
+auth_max_requests = 12
+gameplay_window_seconds = 60
+gameplay_max_requests = 30
+profile_window_seconds = 60
+profile_max_requests = 20
+admin_window_seconds = 60
+admin_max_requests = 60
+
 [gameplay]
 total_attribute_points = 15
 death_stat_keys = ["health", "生命", "生存", "hp"]

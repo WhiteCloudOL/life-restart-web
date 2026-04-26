@@ -1,187 +1,487 @@
-# 📚 AI Life Simulator - 后端 API 文档
+# AI 人生重开模拟器 API 文档
 
-> 本文档整理了系统（MVP）核心可用接口。系统基于 FastAPI 自动生成符合 OpenAPI 标准的详尽在线文档，强烈建议在服务启动后直接访问接口页面进行测试与调试。
+本文档描述的是当前仓库中实际存在的业务接口，不代替 Swagger/OpenAPI 自动文档，但会补充鉴权、典型调用顺序、字段语义与部署时最常见的问题。
 
-## 🧭 在线接口文档
+自动文档入口：
 
-当后端服务（默认运行在 `http://127.0.0.1:8000`）启动后，您可以访问以下地址查看完整的交互式 API 文档：
-- **Swagger UI（推荐测试使用）**: [`/docs`](http://127.0.0.1:8000/docs)
-- **ReDoc（推荐阅读使用）**: [`/redoc`](http://127.0.0.1:8000/redoc)
+- Swagger UI：`http://127.0.0.1:8100/docs`
+- ReDoc：`http://127.0.0.1:8100/redoc`
+- OpenAPI JSON：`http://127.0.0.1:8100/openapi.json`
 
----
+## 1. 通用约定
 
-## 🔒 基础约定
+### 1.1 基础信息
 
-- **Base URL**: `http://{APP_HOST}:{APP_PORT}`
-- **接口前缀**: `/api`
-- **鉴权方式**: JWT (JSON Web Token)
-  - 在请求头中携带：`Authorization: Bearer <您的 Token>`
-- **数据格式**: 请求与响应默认均采用 `application/json` 格式（登录接口除外）。
+- Base URL：`/api`
+- 认证方式：`Authorization: Bearer <access_token>`
+- 编码：`application/json`
 
----
+### 1.2 常见状态码
 
-## 👤 认证与用户模块
+| 状态码 | 含义 |
+| --- | --- |
+| `200` | 请求成功 |
+| `201` | 资源创建成功 |
+| `400` | 请求参数不合法，或被安全规则拒绝 |
+| `401` | 未认证或 Token 无效 |
+| `403` | 无权限访问 |
+| `404` | 资源不存在 |
+| `409` | 资源冲突，例如用户名重复 |
+| `429` | 触发接口限流或业务额度限制 |
+| `500` | 服务器内部错误 |
 
-### 1. 用户注册
-- **接口**: `POST /api/auth/register`
-- **权限**: 开放
-- **请求体**:
-  ```json
+### 1.3 通用错误响应
+
+```json
+{
+  "detail": "错误描述"
+}
+```
+
+## 2. 认证与限流
+
+### 2.1 认证头
+
+```http
+Authorization: Bearer eyJhbGciOi...
+```
+
+### 2.2 速率限制分类
+
+当前后端按业务分为四类限流：
+
+| 分类 | 默认窗口 | 默认阈值 | 典型接口 |
+| --- | --- | --- | --- |
+| auth | 60 秒 | 12 次 | `/auth/register` `/auth/login` |
+| gameplay | 60 秒 | 30 次 | `/game/start` `/game/next` `/game/force-exit` |
+| profile | 60 秒 | 20 次 | `/user/me` `/user/history` |
+| admin | 60 秒 | 60 次 | `/admin/*` |
+
+实际值来源于 `config/app_config.toml -> [rate_limit]`。
+
+## 3. 认证接口
+
+### 3.1 注册
+
+- 方法：`POST`
+- 路径：`/api/auth/register`
+- 认证：否
+
+请求体：
+
+```json
+{
+  "username": "alice_01",
+  "password": "Strong@Pass123"
+}
+```
+
+约束：
+
+- 用户名长度 3 到 32，只允许字母、数字、下划线
+- 密码至少 10 位，必须同时包含大写、小写、数字、特殊字符
+
+成功响应：
+
+```json
+{
+  "id": 1,
+  "username": "alice_01",
+  "nickname": "alice_01",
+  "api_mode": "default",
+  "has_custom_api_key": false,
+  "custom_model_name": null,
+  "custom_base_url": null,
+  "is_admin": false,
+  "world_entry_limit": 20,
+  "world_entries_used_today": 0,
+  "model_call_limit": 80,
+  "model_calls_used_today": 0,
+  "last_active_date": "2026-04-26"
+}
+```
+
+### 3.2 登录
+
+- 方法：`POST`
+- 路径：`/api/auth/login`
+- 认证：否
+
+请求体：
+
+```json
+{
+  "username": "alice_01",
+  "password": "Strong@Pass123"
+}
+```
+
+成功响应：
+
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
+  "token_type": "bearer"
+}
+```
+
+## 4. 用户接口
+
+### 4.1 获取当前用户
+
+- 方法：`GET`
+- 路径：`/api/user/me`
+- 认证：是
+
+成功响应字段：
+
+| 字段 | 说明 |
+| --- | --- |
+| `id` | 用户 ID |
+| `username` | 登录用户名 |
+| `nickname` | 展示昵称 |
+| `api_mode` | `default` 或 `custom` |
+| `has_custom_api_key` | 是否已配置自定义模型密钥 |
+| `custom_model_name` | 自定义模型名 |
+| `custom_base_url` | 自定义模型 Base URL |
+| `is_admin` | 是否管理员 |
+| `world_entry_limit` | 每日进入世界配额 |
+| `world_entries_used_today` | 今日已使用进入世界次数 |
+| `model_call_limit` | 每日模型调用配额 |
+| `model_calls_used_today` | 今日已使用模型调用次数 |
+| `last_active_date` | 最近活跃日期 |
+
+### 4.2 更新当前用户
+
+- 方法：`PUT`
+- 路径：`/api/user/me`
+- 认证：是
+
+请求体示例：
+
+```json
+{
+  "nickname": "白昼旅人",
+  "api_mode": "custom",
+  "custom_api_key": "sk-xxxx",
+  "custom_model_name": "gpt-4.1-mini",
+  "custom_base_url": "https://api.openai.com/v1"
+}
+```
+
+说明：
+
+- 不传的字段不会被修改
+- `custom_api_key` 只用于写入，不会以明文形式从接口返回
+- 若切换回 `default` 模式，可只更新 `api_mode`
+
+### 4.3 获取我的历史局
+
+- 方法：`GET`
+- 路径：`/api/user/history`
+- 认证：是
+
+成功响应：
+
+```json
+[
   {
-    "username": "alice_001",
-    "password": "StrongPass!123"
+    "id": 12,
+    "user_id": 1,
+    "preset_id": 2,
+    "current_stats": {
+      "physique": 6,
+      "intelligence": 8
+    },
+    "event_history": [
+      {
+        "role": "system",
+        "content": "进入世界：赛博城贫民区"
+      }
+    ],
+    "is_ended": false
   }
-  ```
-- **响应**: 成功返回 `200 OK`，包含新建用户的基础信息。
+]
+```
 
-### 2. 用户登录
-- **接口**: `POST /api/auth/login`
-- **权限**: 开放
-- **请求格式**: `application/x-www-form-urlencoded` (OAuth2PasswordRequestForm)
-- **请求体**:
-  ```text
-  username=alice_001&password=StrongPass!123
-  ```
-- **响应**:
-  ```json
-  {
-    "access_token": "eyJhbGciOiJIUzI1NiIsInR5...",
-    "token_type": "bearer"
-  }
-  ```
+## 5. 管理员接口
 
-### 3. 获取当前登录用户信息
-- **接口**: `GET /api/user/me`
-- **权限**: 需有效登录 Token
-- **说明**: 
-  - 返回用户的基本信息、额度使用情况。
-  - **安全保障**：对于自定义 API Key，接口仅返回布尔值状态 `has_custom_api_key`，绝对不会回传明文 Key。
+所有 `/api/admin/*` 接口都要求管理员身份。
 
-### 4. 更新当前用户信息
-- **接口**: `PUT /api/user/me`
-- **权限**: 需有效登录 Token
-- **请求体** (仅需传需修改的字段):
-  ```json
-  {
-    "username": "new_alice",
-    "custom_api_key": "sk-your-new-api-key",
-    "custom_model_name": "gpt-4o-mini",
-    "custom_base_url": "https://api.openai.com/v1"
-  }
-  ```
+### 5.1 分页获取用户列表
 
-### 5. 获取用户游戏历史
-- **接口**: `GET /api/user/history`
-- **权限**: 需有效登录 Token
-- **响应**: 分页返回该用户曾经游玩过的所有游戏会话摘要列表。
+- 方法：`GET`
+- 路径：`/api/admin/users?page=1&size=20`
+- 认证：管理员
 
----
+成功响应：
 
-## 🎮 游戏引擎模块
-
-### 1. 获取可用人生预设
-- **接口**: `GET /api/game/presets`
-- **权限**: 需有效登录 Token
-- **响应示例**:
-  ```json
-  [
+```json
+{
+  "page": 1,
+  "size": 20,
+  "total": 2,
+  "items": [
     {
       "id": 1,
-      "title": "普通家庭开局",
-      "description": "你出生在一个普通家庭，资源有限但关系温暖。"
-    },
-    {
-      "id": 2,
-      "title": "天胡富二代开局",
-      "description": "含着金汤匙出生，起点即是很多人的终点。"
+      "username": "admin",
+      "nickname": "admin",
+      "api_mode": "default",
+      "is_admin": true,
+      "world_entry_limit": 10000,
+      "world_entries_used_today": 0,
+      "model_call_limit": 20000,
+      "model_calls_used_today": 0,
+      "last_active_date": "2026-04-26",
+      "has_custom_api_key": false
     }
-  ]
-  ```
+  ],
+  "next_page": null
+}
+```
 
-### 2. 开始新游戏
-- **接口**: `POST /api/game/start`
-- **权限**: 需有效登录 Token
-- **请求体**:
-  ```json
+### 5.2 创建用户
+
+- 方法：`POST`
+- 路径：`/api/admin/users`
+- 认证：管理员
+
+请求体：
+
+```json
+{
+  "username": "operator_01",
+  "password": "Strong@Pass123",
+  "nickname": "运营一号",
+  "is_admin": false
+}
+```
+
+### 5.3 更新用户配额
+
+- 方法：`PUT`
+- 路径：`/api/admin/users/{user_id}/quota`
+- 认证：管理员
+
+请求体：
+
+```json
+{
+  "world_entry_limit": 50,
+  "model_call_limit": 300
+}
+```
+
+兼容字段别名：
+
+- `daily_quota` 等价于 `world_entry_limit`
+- `daily_model_call_limit` 等价于 `model_call_limit`
+
+### 5.4 更新用户资料
+
+- 方法：`PATCH`
+- 路径：`/api/admin/users/{user_id}`
+- 认证：管理员
+
+请求体示例：
+
+```json
+{
+  "nickname": "审计员",
+  "is_admin": true,
+  "world_entry_limit": 100,
+  "model_call_limit": 500,
+  "model_calls_used_today": 12
+}
+```
+
+### 5.5 删除用户
+
+- 方法：`DELETE`
+- 路径：`/api/admin/users/{user_id}`
+- 认证：管理员
+
+成功响应：
+
+```json
+{
+  "message": "用户已删除"
+}
+```
+
+实际文案可能因服务层实现略有不同，但响应结构为简单消息体。
+
+## 6. 游戏接口
+
+### 6.1 获取世界预设
+
+- 方法：`GET`
+- 路径：`/api/game/presets`
+- 认证：是
+
+响应示例：
+
+```json
+[
   {
-    "preset_id": 1
-  }
-  ```
-- **响应示例** (包含游戏初始状态及 AI 生成的选项):
-  ```json
-  {
-    "session_id": 1,
-    "event": "你顺利进入小学，第一次班会开始了。",
-    "current_stats": { 
-      "health": 81, 
-      "intelligence": 71, 
-      "wealth": 40, 
-      "happiness": 76 
-    },
-    "is_ended": false,
-    "daily_quota": 20,
-    "used_quota_today": 1,
-    "next_choices": [
-      "认真听讲", 
-      "和同桌聊天", 
-      "举手发言"
+    "id": 1,
+    "title": "普通家庭开局",
+    "description": "你出生在一个普通家庭，资源有限但关系温暖。",
+    "worldview": "近未来都市世界……",
+    "character_options": ["务实内向", "外向冒险", "理性规划"],
+    "max_attribute_points": 15,
+    "is_custom": false,
+    "attributes": [
+      {
+        "key": "looks",
+        "label": "颜值",
+        "purpose": "影响他人的第一印象……",
+        "min_value": 0,
+        "max_value": 10,
+        "default_value": 0
+      }
     ]
   }
-  ```
+]
+```
 
-### 3. 做出选择并推进人生
-- **接口**: `POST /api/game/next`
-- **权限**: 需有效登录 Token，且只能操作属于自己的 `session_id` (防 IDOR 越权)
-- **请求体**:
-  ```json
-  {
-    "session_id": 1,
-    "user_choice": "我选择认真听讲，给老师留下好印象"
-  }
-  ```
-- **响应说明**:
-  - 成功时响应结构同 `开始新游戏` 接口。
-  - 若触发角色死亡或达成结局，`is_ended` 将变为 `true`，此时 `next_choices` 将返回空数组 `[]`。
+### 6.2 开始新局
 
----
+- 方法：`POST`
+- 路径：`/api/game/start`
+- 认证：是
 
-## ⚙️ 系统管理员模块
+请求体示例：
 
-> 以下接口必须由拥有管理员标记（`is_admin=true`）的账户调用。
+```json
+{
+  "preset_id": 1,
+  "selected_character_setting": "理性规划",
+  "allocated_attributes": {
+    "looks": 3,
+    "physique": 4,
+    "intelligence": 5,
+    "wealth": 3
+  },
+  "custom_prompt": "希望剧情更偏现实主义"
+}
+```
 
-### 1. 分页查询用户列表
-- **接口**: `GET /api/admin/users?page=1&size=20`
-- **权限**: 管理员专有
-- **说明**: 方便管理员监控系统全局用户增长和基本状态。
+自定义预设示例：
 
-### 2. 修改指定用户配额
-- **接口**: `PUT /api/admin/users/{user_id}/quota`
-- **权限**: 管理员专有
-- **请求体**:
-  ```json
-  {
-    "daily_quota": 50
-  }
-  ```
-- **说明**: 调整指定用户的每日最大调用次数上限，方便给特定用户发福利或限制滥用行为。
+```json
+{
+  "preset_id": 9999,
+  "custom_worldview": "2077 年的海上浮城社会，能源稀缺，秩序建立在算法信用之上。",
+  "custom_character_setting": "记忆受损但异常冷静的机械维修师",
+  "allocated_attributes": {
+    "looks": 2,
+    "physique": 3,
+    "intelligence": 6,
+    "wealth": 4
+  },
+  "custom_prompt": "剧情节奏偏慢，注重生存与选择后果"
+}
+```
 
----
+成功响应：
 
-## 🛡️ 核心安全与额度规则机制
+```json
+{
+  "session_id": 32,
+  "event": "你出生在一个普通家庭……",
+  "event_segments": [
+    "你出生在一个普通家庭。",
+    "你的父母虽然并不富裕，却愿意为你承担风险。"
+  ],
+  "current_stats": {
+    "looks": 3,
+    "physique": 4,
+    "intelligence": 5,
+    "wealth": 3
+  },
+  "is_ended": false,
+  "world_entry_limit": 20,
+  "world_entries_used_today": 1,
+  "model_call_limit": 80,
+  "model_calls_used_today": 1,
+  "next_choices": [
+    "[高风险] ...",
+    "[中风险] ...",
+    "[低风险] ..."
+  ],
+  "end_reason": null,
+  "end_summary": null
+}
+```
 
-本系统为商业化标准设计，针对 AI 服务的核心资产进行了以下安全限制：
+### 6.3 推进下一回合
 
-### 1. 数据权限隔离
-- 严密的 IDOR（越权访问）防护机制：例如访问 `/api/game/next` 接口时，系统会严格校验请求携带的 `session_id` 是否归属于当前请求的 Token 所有者。
+- 方法：`POST`
+- 路径：`/api/game/next`
+- 认证：是
 
-### 2. 凭据加密策略
-- **账户密码**：使用强单向哈希算法 `bcrypt` 存储，数据库绝不保存明文密码。
-- **自定义 API Key**：使用 `Fernet` 对称加密算法存储入库。前端永远无法查询到明文，仅由服务端在请求上游大模型 API 时解密使用。
+请求体：
 
-### 3. 服务端模型资产保护
-- 系统的兜底/默认模型配置位于 `config/app_config.toml` 的 `[default_model].api_key` 中。
-- 绝不提供任何 API 或页面返回该系统级 Key，防止开发者核心资产外泄。
+```json
+{
+  "session_id": 32,
+  "user_choice": "接受高风险创业提议"
+}
+```
 
-### 4. 额度计费规则
-- 若用户使用系统的 **默认模型**：扣除系统派发的每日额度（`daily_quota`），当达到上限时拒绝服务；次日凌晨（00:00）自动重置。
-- 若用户配置了 **自定义模型与自定义 API Key（BYOK）**：消耗用户自己的资金，该用户的调用将 **不限额**，不受系统每日额度管控。
+响应结构与 `/api/game/start` 相同。
+
+### 6.4 强制结束当前会话
+
+- 方法：`POST`
+- 路径：`/api/game/force-exit`
+- 认证：是
+
+请求体：
+
+```json
+{
+  "session_id": 32
+}
+```
+
+成功响应：
+
+```json
+{
+  "success": true,
+  "end_reason": "forced_exit",
+  "end_summary": "你的人生在此刻被主动按下暂停键……"
+}
+```
+
+## 7. 推荐调用顺序
+
+正常前端接入顺序：
+
+1. `POST /api/auth/login`
+2. `GET /api/user/me`
+3. `GET /api/game/presets`
+4. `POST /api/game/start`
+5. 循环调用 `POST /api/game/next`
+6. 需要提前结束时调用 `POST /api/game/force-exit`
+7. 在个人页读取 `GET /api/user/history`
+
+## 8. 与部署相关的 API 注意事项
+
+- 前端域名变化后，记得同步 `FRONTEND_PUBLIC_ORIGIN` 与 `ALLOWED_ORIGINS`。
+- 若启用反向代理并打开 `ENFORCE_HTTPS=true`，必须保证代理透传 `X-Forwarded-Proto`。
+- 若切换到自定义模型模式，`custom_base_url` 必须是合法 URL。
+- 当前数据库默认 SQLite，管理员类接口与游戏推进接口不建议在多实例共享写入场景下直接横向扩容。
+
+## 9. 文档维护说明
+
+本文档基于当前代码实现维护。若以下内容发生变化，应同步更新：
+
+- 路由路径与方法
+- 请求/响应模型字段
+- 限流默认值
+- 配置项名称
+- 默认开发端口与部署方式
+

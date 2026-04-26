@@ -2,7 +2,7 @@ import base64
 import hashlib
 import re
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict
+from typing import TypedDict, cast
 from uuid import uuid4
 
 import bcrypt
@@ -12,6 +12,15 @@ from cryptography.fernet import Fernet, InvalidToken
 from app.core.config import get_settings
 
 ENCRYPTED_SECRET_PREFIX = "enc::"
+
+
+class AccessTokenClaims(TypedDict):
+    sub: str
+    type: str
+    iat: int
+    nbf: int
+    exp: int
+    jti: str
 
 
 def validate_username(username: str) -> str:
@@ -58,7 +67,7 @@ def create_access_token(subject: str) -> str:
     settings = get_settings()
     now = datetime.now(timezone.utc)
     expire = now + timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    payload: Dict[str, Any] = {
+    payload: AccessTokenClaims = {
         "sub": subject,
         "type": "access",
         "iat": int(now.timestamp()),
@@ -69,14 +78,15 @@ def create_access_token(subject: str) -> str:
     return jwt.encode(payload, settings.SECRET_KEY, algorithm=settings.JWT_ALGORITHM)
 
 
-def decode_access_token(token: str) -> Dict[str, Any]:
+def decode_access_token(token: str) -> AccessTokenClaims:
     settings = get_settings()
-    payload = jwt.decode(
+    raw_payload = jwt.decode(
         token,
         settings.SECRET_KEY,
         algorithms=[settings.JWT_ALGORITHM],
         options={"require": ["exp", "sub", "type", "iat", "nbf", "jti"]},
     )
+    payload = cast(AccessTokenClaims, raw_payload)
     if payload.get("type") != "access":
         raise jwt.InvalidTokenError("token type invalid")
     return payload

@@ -100,9 +100,6 @@ request.interceptors.response.use(
       if (statusCode === 401) {
         window.localStorage.removeItem(ACCESS_TOKEN_KEY);
         window.dispatchEvent(new CustomEvent('auth:unauthorized'));
-        if (window.location.pathname !== '/login') {
-          window.location.replace('/login');
-        }
       }
 
       if (statusCode === 429) {
