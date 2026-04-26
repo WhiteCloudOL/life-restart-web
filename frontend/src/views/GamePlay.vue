@@ -625,6 +625,34 @@ onMounted(async () => {
       </aside>
 
       <main class="min-w-0 flex-1">
+        <section
+          class="mb-4 rounded-2xl border border-zinc-200/60 bg-white/80 p-4 shadow-sm backdrop-blur-md lg:hidden"
+        >
+          <div class="mb-3 flex items-center justify-between">
+            <p class="text-sm font-semibold text-zinc-800">实时属性</p>
+            <p class="text-xs text-zinc-500">移动视图</p>
+          </div>
+          <div class="grid grid-cols-2 gap-3 sm:grid-cols-3">
+            <div
+              v-for="item in sortedStats"
+              :key="`mobile-${item.key}`"
+              class="rounded-xl border border-zinc-100 bg-zinc-50/80 px-3 py-2"
+            >
+              <p class="text-xs text-zinc-500">{{ formatStatLabel(item.key) }}</p>
+              <div class="mt-1 flex items-center gap-2">
+                <span class="font-mono text-base font-bold" :class="getStatTextTone(item.key)">{{ item.value }}</span>
+                <span
+                  v-if="getStatDelta(item.key) !== 0"
+                  class="text-[11px] font-semibold"
+                  :class="getStatDelta(item.key) > 0 ? 'text-emerald-600' : 'text-red-500'"
+                >
+                  {{ getStatDelta(item.key) > 0 ? `+${getStatDelta(item.key)}` : getStatDelta(item.key) }}
+                </span>
+              </div>
+            </div>
+          </div>
+        </section>
+
         <div class="rounded-[2rem] border border-zinc-200/60 bg-white/75 p-5 shadow-[0_18px_60px_rgba(24,24,27,0.06)] ring-1 ring-zinc-900/5 backdrop-blur-xl lg:p-8">
           <header class="mb-8 flex flex-col gap-5 border-b border-zinc-100 pb-6 lg:flex-row lg:items-end lg:justify-between">
             <div class="space-y-2">

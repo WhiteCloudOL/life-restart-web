@@ -106,8 +106,21 @@ watch(
       </div>
     </header>
 
-    <main :class="isGameRoute ? 'px-0' : 'px-0'">
-      <div :class="isGameRoute ? 'pt-16' : 'mx-auto max-w-[1400px] px-0 pt-16'">
+    <main>
+      <div :class="isGameRoute ? 'pt-16' : 'mx-auto max-w-[1400px] pt-16'">
+        <nav class="border-b border-zinc-100 bg-white/70 px-4 py-3 backdrop-blur-xl md:hidden">
+          <div class="flex items-center justify-between gap-3 overflow-x-auto">
+            <RouterLink
+              v-for="item in navItems"
+              :key="item.to"
+              :to="item.to"
+              class="shrink-0 rounded-full px-3 py-2 text-sm font-medium transition-colors"
+              :class="route.path === item.to ? 'bg-zinc-800 text-white' : 'bg-zinc-100/80 text-zinc-500'"
+            >
+              {{ item.label }}
+            </RouterLink>
+          </div>
+        </nav>
         <RouterView v-slot="{ Component, route: currentRoute }">
           <Transition name="page-float" mode="out-in">
             <component :is="Component" :key="currentRoute.fullPath" />
