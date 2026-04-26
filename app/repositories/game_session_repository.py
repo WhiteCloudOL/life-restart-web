@@ -34,6 +34,10 @@ class GameSessionRepository:
 
     async def save(self, game_session: GameSession) -> GameSession:
         self.session.add(game_session)
-        await self.session.commit()
+        try:
+            await self.session.commit()
+        except Exception:
+            await self.session.rollback()
+            raise
         await self.session.refresh(game_session)
         return game_session

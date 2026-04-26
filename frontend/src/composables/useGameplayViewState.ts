@@ -6,6 +6,9 @@ import type { StartGamePayload } from '@/types/game';
 type ChoiceTone = 'high' | 'medium' | 'low';
 
 const OPTIONAL_ATTRIBUTE_KEYS = new Set(['happiness', '幸福']);
+const normalizeChoiceInput = (value: string): string => {
+  return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim().slice(0, 500);
+};
 
 export function useGameplayViewState(gameStore: ReturnType<typeof useGameStore>, router: Router) {
   const customChoice = ref<string>('');
@@ -262,6 +265,9 @@ export function useGameplayViewState(gameStore: ReturnType<typeof useGameStore>,
 
   const beginWorld = async (payload: StartGamePayload): Promise<void> => {
     startProcessingSince.value = Date.now();
+    typedAssistantIds.value = new Set();
+    pendingStorySegments.value = [];
+    retryChoiceValue.value = null;
     try {
       const eventSegments = await gameStore.startSelectedWorld(payload);
       pendingStorySegments.value = eventSegments;
@@ -274,19 +280,20 @@ export function useGameplayViewState(gameStore: ReturnType<typeof useGameStore>,
   };
 
   const runChoice = async (choice: string): Promise<void> => {
-    if (!choice.trim() || !canOperate.value) {
+    const normalizedChoice = normalizeChoiceInput(choice);
+    if (!normalizedChoice || !canOperate.value) {
       return;
     }
     customChoice.value = '';
-    activeChoice.value = choice;
+    activeChoice.value = normalizedChoice;
     gameplayProcessingSince.value = Date.now();
     try {
-      const eventSegments = await gameStore.runNextStep(choice.trim());
+      const eventSegments = await gameStore.runNextStep(normalizedChoice);
       pendingStorySegments.value = eventSegments;
       revealNextSegment();
       retryChoiceValue.value = null;
     } catch (error) {
-      retryChoiceValue.value = choice;
+      retryChoiceValue.value = normalizedChoice;
       notifyError('推进失败，请稍后重试', error);
     } finally {
       gameplayProcessingSince.value = null;
@@ -314,7 +321,8 @@ export function useGameplayViewState(gameStore: ReturnType<typeof useGameStore>,
   };
 
   const onSubmitCustomChoice = async (): Promise<void> => {
-    if (!customChoice.value.trim() || !canOperate.value) {
+    customChoice.value = normalizeChoiceInput(customChoice.value);
+    if (!customChoice.value || !canOperate.value) {
       return;
     }
     isSubmittingCustom.value = true;
@@ -344,6 +352,7 @@ export function useGameplayViewState(gameStore: ReturnType<typeof useGameStore>,
     gameStore.resetSession();
     pendingStorySegments.value = [];
     retryChoiceValue.value = null;
+    typedAssistantIds.value = new Set();
     await router.replace('/');
   };
 

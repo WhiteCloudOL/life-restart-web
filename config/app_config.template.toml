@@ -9,7 +9,7 @@ api_key = "replace-with-your-api-key"
 
 [default_admin]
 username = "admin"
-password = "Admin@12345678"
+password = "replace-in-env"
 
 [quota]
 default_daily_quota = 20

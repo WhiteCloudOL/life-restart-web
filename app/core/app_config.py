@@ -78,7 +78,7 @@ class DefaultAdminConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
     username: str = Field(default="admin", min_length=1, max_length=32)
-    password: str = Field(default="RootOnly!8472X", min_length=1, max_length=128)
+    password: str = Field(default="", max_length=128)
 
 
 class AppConfig(BaseModel):
@@ -110,13 +110,22 @@ class AppConfigProvider:
         self._settings = settings
         self._cached_config: AppConfig | None = None
 
+    def _apply_runtime_secrets(self, config: AppConfig) -> AppConfig:
+        if config.default_admin.password.strip() in {"", "replace-with-a-strong-password", "replace-in-env"}:
+            config.default_admin.password = self._settings.DEFAULT_ADMIN_PASSWORD
+
+        if self._settings.ENVIRONMENT == "production":
+            if config.default_admin.username.strip() and not config.default_admin.password.strip():
+                raise RuntimeError("生产环境若启用默认管理员，必须通过 DEFAULT_ADMIN_PASSWORD 提供密码")
+        return config
+
     def get(self) -> AppConfig:
         if self._cached_config is None:
-            self._cached_config = load_app_config(self._settings.APP_CONFIG_PATH)
+            self._cached_config = self._apply_runtime_secrets(load_app_config(self._settings.APP_CONFIG_PATH))
         return self._cached_config
 
     def reload(self) -> AppConfig:
-        self._cached_config = load_app_config(self._settings.APP_CONFIG_PATH)
+        self._cached_config = self._apply_runtime_secrets(load_app_config(self._settings.APP_CONFIG_PATH))
         return self._cached_config
 
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import json
+import re
 from typing import Literal, TypedDict
 
 from fastapi import HTTPException
@@ -36,6 +37,7 @@ JSONMapping = dict[str, object]
 LLM_REQUEST_TIMEOUT_SECONDS = 25.0
 LLM_MAX_ATTEMPTS_PER_CANDIDATE = 2
 LLM_RETRY_BACKOFF_SECONDS = 0.8
+JSON_CODE_FENCE_PATTERN = re.compile(r"```(?:json)?\s*(\{.*\})\s*```", re.DOTALL | re.IGNORECASE)
 
 
 def _build_model_candidates(model_name: str) -> list[str]:
@@ -55,6 +57,31 @@ def _extract_message_content(response: _ChatCompletionResponse) -> str:
     if isinstance(content, str):
         return content
     return "{}"
+
+
+def _extract_json_mapping(content: str) -> JSONMapping | None:
+    normalized = (content or "").strip()
+    if not normalized:
+        return None
+
+    candidates = [normalized]
+    fenced = JSON_CODE_FENCE_PATTERN.search(normalized)
+    if fenced:
+        candidates.insert(0, fenced.group(1).strip())
+
+    start = normalized.find("{")
+    end = normalized.rfind("}")
+    if start != -1 and end != -1 and start < end:
+        candidates.append(normalized[start : end + 1].strip())
+
+    for candidate in candidates:
+        try:
+            parsed = json.loads(candidate)
+        except json.JSONDecodeError:
+            continue
+        if isinstance(parsed, dict):
+            return parsed
+    return None
 
 
 def _resolve_runtime_model_config(user: User) -> tuple[list[str], str, str]:
@@ -111,6 +138,8 @@ async def _run_completion(
 
                 response = await _completion_with_timeout(**request_kwargs)
                 return (_extract_message_content(response) or "").strip()
+            except TimeoutError as exc:
+                last_error = exc
             except Exception as exc:
                 last_error = exc
                 if attempt < LLM_MAX_ATTEMPTS_PER_CANDIDATE - 1:
@@ -128,14 +157,10 @@ async def run_json_completion(messages: list[ChatMessage], user: User) -> JSONMa
         response_format={"type": "json_object"},
     )
 
-    try:
-        parsed = json.loads(content or "{}")
-    except json.JSONDecodeError as exc:
-        raise HTTPException(status_code=502, detail="AI 返回格式不合法，请稍后重试") from exc
-
-    if not isinstance(parsed, dict):
-        raise HTTPException(status_code=502, detail="AI 返回格式不合法，请稍后重试")
-    return parsed
+    parsed = _extract_json_mapping(content)
+    if parsed is not None:
+        return parsed
+    raise HTTPException(status_code=502, detail="AI 返回格式不合法，请稍后重试")
 
 
 async def run_text_completion(messages: list[ChatMessage], user: User) -> str:

@@ -4,6 +4,7 @@ from collections.abc import AsyncIterator
 from importlib.util import find_spec
 from pathlib import Path
 
+from sqlalchemy import event
 from sqlalchemy.ext.asyncio import AsyncEngine, async_sessionmaker, create_async_engine
 from sqlmodel import Session, create_engine
 from sqlmodel.ext.asyncio.session import AsyncSession
@@ -26,16 +27,27 @@ def _build_async_database_url(database_url: str) -> str:
     return database_url
 
 
-def _build_sync_connect_args(settings: Settings) -> dict[str, bool]:
+def _build_sync_connect_args(settings: Settings) -> dict[str, bool | float]:
     if settings.DATABASE_URL.startswith("sqlite"):
-        return {"check_same_thread": False}
+        return {"check_same_thread": False, "timeout": 30.0}
     return {}
 
 
-def _build_async_connect_args(settings: Settings) -> dict[str, bool]:
+def _build_async_connect_args(settings: Settings) -> dict[str, bool | float]:
     if settings.DATABASE_URL.startswith("sqlite"):
-        return {"check_same_thread": False}
+        return {"check_same_thread": False, "timeout": 30.0}
     return {}
+
+
+def _configure_sqlite_connection(dbapi_connection: object) -> None:
+    cursor = dbapi_connection.cursor()
+    try:
+        cursor.execute("PRAGMA foreign_keys=ON")
+        cursor.execute("PRAGMA journal_mode=WAL")
+        cursor.execute("PRAGMA synchronous=NORMAL")
+        cursor.execute("PRAGMA busy_timeout=30000")
+    finally:
+        cursor.close()
 
 
 settings = get_settings()
@@ -49,6 +61,9 @@ engine = create_engine(
     echo=False,
 )
 
+if settings.DATABASE_URL.startswith("sqlite"):
+    event.listen(engine, "connect", _configure_sqlite_connection)
+
 async_engine: AsyncEngine | None = None
 async_session_factory: async_sessionmaker[AsyncSession] | None = None
 
@@ -59,6 +74,8 @@ if ASYNC_SQLITE_DRIVER_AVAILABLE:
         echo=False,
         future=True,
     )
+    if settings.DATABASE_URL.startswith("sqlite"):
+        event.listen(async_engine.sync_engine, "connect", _configure_sqlite_connection)
     async_session_factory = async_sessionmaker(
         bind=async_engine,
         class_=AsyncSession,

@@ -37,6 +37,7 @@ class Settings(BaseSettings):
     JWT_ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24
     USER_DATA_ENCRYPTION_SECRET: str = "dev-only-change-this-encryption-secret-immediately"
+    DEFAULT_ADMIN_PASSWORD: str = ""
 
     # 前端访问配置
     FRONTEND_DEV_ORIGIN: str = "http://127.0.0.1:5173"
@@ -109,6 +110,11 @@ class Settings(BaseSettings):
             raise ValueError("USER_DATA_ENCRYPTION_SECRET 长度必须至少 32 个字符")
         return value
 
+    @field_validator("DEFAULT_ADMIN_PASSWORD")
+    @classmethod
+    def strip_optional_secrets(cls, value: str) -> str:
+        return value.strip()
+
     @model_validator(mode="after")
     def normalize_paths(self) -> Settings:
         base_dir = self.PROJECT_ROOT
@@ -138,6 +144,10 @@ class Settings(BaseSettings):
                 raise ValueError("生产环境禁止在 ALLOWED_ORIGINS 中使用通配符 *")
             if self.FRONTEND_PUBLIC_ORIGIN.strip() == "":
                 raise ValueError("生产环境必须配置 FRONTEND_PUBLIC_ORIGIN")
+            if self.SECRET_KEY.startswith("dev-only-change-this-"):
+                raise ValueError("生产环境必须显式配置 SECRET_KEY")
+            if self.USER_DATA_ENCRYPTION_SECRET.startswith("dev-only-change-this-"):
+                raise ValueError("生产环境必须显式配置 USER_DATA_ENCRYPTION_SECRET")
         if self.LOGIN_MAX_FAILURES_PER_ACCOUNT < 1:
             raise ValueError("LOGIN_MAX_FAILURES_PER_ACCOUNT 必须至少为 1")
         if self.LOGIN_ACCOUNT_LOCK_MINUTES < 1:

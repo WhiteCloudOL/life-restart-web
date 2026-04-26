@@ -3,6 +3,10 @@ import type { Router } from 'vue-router';
 import { useGameStore } from '@/stores/useGameStore';
 import type { GamePreset, StartGamePayload } from '@/types/game';
 
+const normalizePromptInput = (value: string, maxLength: number): string => {
+  return value.replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F\u007F]/g, '').replace(/\s+/g, ' ').trim().slice(0, maxLength);
+};
+
 export function useGameplaySetup(gameStore: ReturnType<typeof useGameStore>, router: Router) {
   const optionalAttributeKeys = new Set(['happiness', '幸福']);
   const selectedCharacterSetting = ref<string | null>(null);
@@ -47,7 +51,10 @@ export function useGameplaySetup(gameStore: ReturnType<typeof useGameStore>, rou
       return false;
     }
     if (gameStore.selectedPreset.is_custom) {
-      return customWorldview.value.trim().length > 0 && customCharacterSetting.value.trim().length > 0;
+      return (
+        normalizePromptInput(customWorldview.value, 2000).length > 0 &&
+        normalizePromptInput(customCharacterSetting.value, 500).length > 0
+      );
     }
     return true;
   });
@@ -127,10 +134,12 @@ export function useGameplaySetup(gameStore: ReturnType<typeof useGameStore>, rou
     return {
       preset_id: preset.id,
       selected_character_setting: selectedCharacterSetting.value,
-      custom_worldview: preset.is_custom ? customWorldview.value.trim() || null : null,
-      custom_character_setting: preset.is_custom ? customCharacterSetting.value.trim() || null : null,
+      custom_worldview: preset.is_custom ? normalizePromptInput(customWorldview.value, 2000) || null : null,
+      custom_character_setting: preset.is_custom
+        ? normalizePromptInput(customCharacterSetting.value, 500) || null
+        : null,
       allocated_attributes: setupAttributes.value,
-      custom_prompt: setupPrompt.value.trim() || null,
+      custom_prompt: normalizePromptInput(setupPrompt.value, 200) || null,
     };
   };
 
