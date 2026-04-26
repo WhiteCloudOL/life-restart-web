@@ -98,7 +98,6 @@ def _start_frontend_dev_server() -> subprocess.Popen[str] | None:
 
     # 开发模式下将前端地址写入环境，便于 Vite 或脚本读取
     env = os.environ.copy()
-    env["VITE_DEV_ORIGIN"] = settings.FRONTEND_DEV_ORIGIN
     parsed = urlparse(settings.FRONTEND_DEV_ORIGIN)
     if parsed.hostname:
         env["VITE_DEV_HOST"] = parsed.hostname
