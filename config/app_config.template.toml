@@ -23,7 +23,7 @@ route_base = "/"
 
 [gameplay]
 total_attribute_points = 15
-death_stat_keys = ["health", "体质", "生命", "生存", "hp"]
+death_stat_keys = ["health", "生命", "生存", "hp"]
 death_stat_threshold = 0
 death_event_keywords = ["死亡", "去世", "身亡", "当场死亡", "终年", "dead", "died"]
 default_next_choices = [

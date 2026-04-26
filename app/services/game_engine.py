@@ -9,6 +9,8 @@ from app.core.prompt_templates import (
     build_start_user_prompt,
 )
 
+PHYSIQUE_DEATH_KEYS = {"体质", "physique", "constitution"}
+
 
 def parse_json_object(data: str) -> Dict[str, Any]:
     try:
@@ -131,6 +133,8 @@ def should_force_end_by_death(event: str, stats: Dict[str, Any]) -> bool:
 
     threshold = app_config.gameplay.death_stat_threshold
     for stat_key in app_config.gameplay.death_stat_keys:
+        if stat_key in PHYSIQUE_DEATH_KEYS:
+            continue
         value = stats.get(stat_key)
         if isinstance(value, (int, float)) and value <= threshold:
             return True

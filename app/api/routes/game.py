@@ -109,7 +109,8 @@ def _inject_system_health(stats: dict[str, int]) -> dict[str, int]:
     for key in physique_candidates:
         value = next_stats.get(key)
         if isinstance(value, (int, float)):
-            next_stats["health"] = int(max(0, value))
+            # 体质跌到 0 或以下时，健康保留最低可推进值，避免被系统同步直接判死。
+            next_stats["health"] = int(max(1, value))
             return next_stats
     if "health" not in next_stats:
         next_stats["health"] = 100
