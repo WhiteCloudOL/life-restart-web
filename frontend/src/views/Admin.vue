@@ -208,7 +208,7 @@ onMounted(loadPage);
         <h1>管理员看板</h1>
         <p>集中管理账户、角色、昵称、密码，以及每日次数与模型调用用量</p>
       </div>
-      <BaseButton type="button" @click="openCreateDialog">新增账户</BaseButton>
+      <BaseButton type="button" :block="false" @click="openCreateDialog">新增账户</BaseButton>
     </header>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
