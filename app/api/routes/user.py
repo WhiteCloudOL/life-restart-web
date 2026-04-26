@@ -1,7 +1,8 @@
 from typing import List
 
 from fastapi import APIRouter, Depends, HTTPException
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.deps import get_current_user, get_session
 from app.core.security import encrypt_user_secret, has_usable_user_secret
@@ -36,20 +37,23 @@ def to_user_read(user: User) -> UserRead:
 
 
 @router.get("/me", response_model=UserRead)
-def get_me(current_user: User = Depends(get_current_user), session: Session = Depends(get_session)):
+async def get_me(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
     # 每次读取用户信息时做跨天重置，保证额度显示准确
     reset_quota_if_new_day(current_user)
     session.add(current_user)
-    session.commit()
-    session.refresh(current_user)
+    await session.commit()
+    await session.refresh(current_user)
     return to_user_read(current_user)
 
 
 @router.put("/me", response_model=UserRead)
-def update_me(
+async def update_me(
     payload: UserUpdateRequest,
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
     if "nickname" in payload.model_fields_set:
         current_user.nickname = payload.nickname or current_user.username
@@ -75,22 +79,23 @@ def update_me(
             raise HTTPException(status_code=400, detail="启用自定义 API 模式前请先填写自定义 API Key")
 
     session.add(current_user)
-    session.commit()
-    session.refresh(current_user)
+    await session.commit()
+    await session.refresh(current_user)
     return to_user_read(current_user)
 
 
 @router.get("/history", response_model=List[GameSessionRead])
-def my_history(
+async def my_history(
     current_user: User = Depends(get_current_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
-    sessions = session.exec(
+    result = await session.exec(
         select(GameSession)
         .where(GameSession.user_id == current_user.id)
         .order_by(GameSession.id.desc())
         .limit(MAX_HISTORY_RECORDS)
-    ).all()
+    )
+    sessions = result.all()
 
     result: List[GameSessionRead] = []
     for row in sessions:

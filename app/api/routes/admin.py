@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
-from sqlmodel import Session, func, select
+from sqlmodel import func, select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.app_config import get_app_config
 from app.core.deps import get_current_admin_user, get_session
@@ -33,8 +34,9 @@ def _to_admin_user_read(user: User) -> AdminUserRead:
     )
 
 
-def _admin_count(session: Session) -> int:
-    return session.exec(select(func.count()).select_from(User).where(User.is_admin == True)).one()
+async def _admin_count(session: AsyncSession) -> int:
+    result = await session.exec(select(func.count()).select_from(User).where(User.is_admin == True))
+    return result.one()
 
 
 def _validate_limits(*, world_entry_limit: int | None, model_call_limit: int | None) -> None:
@@ -60,27 +62,30 @@ def _apply_user_limits(*, user: User, world_entry_limit: int | None, model_call_
 
 
 @router.get("/users", response_model=PaginatedUsersResponse)
-def list_users(
+async def list_users(
     page: int = Query(default=1, ge=1),
     size: int = Query(default=20, ge=1, le=100),
     _: User = Depends(get_current_admin_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
-    total = session.exec(select(func.count()).select_from(User)).one()
+    total_result = await session.exec(select(func.count()).select_from(User))
+    total = total_result.one()
     offset = (page - 1) * size
-    users = session.exec(select(User).offset(offset).limit(size)).all()
+    users_result = await session.exec(select(User).offset(offset).limit(size))
+    users = users_result.all()
     items = [_to_admin_user_read(user) for user in users]
     next_page = page + 1 if offset + size < total else None
     return PaginatedUsersResponse(page=page, size=size, total=total, items=items, next_page=next_page)
 
 
 @router.post("/users", response_model=AdminUserRead, status_code=201)
-def create_user(
+async def create_user(
     payload: AdminUserCreateRequest,
     _: User = Depends(get_current_admin_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
-    existing_user = session.exec(select(User).where(User.username == payload.username)).first()
+    result = await session.exec(select(User).where(User.username == payload.username))
+    existing_user = result.first()
     if existing_user:
         raise HTTPException(status_code=409, detail="用户名已存在")
 
@@ -94,17 +99,17 @@ def create_user(
         daily_model_call_limit=app_config.quota.default_daily_model_call_limit,
     )
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
     return _to_admin_user_read(user)
 
 
 @router.put("/users/{user_id}/quota", response_model=AdminUserRead)
-def update_user_quota(
+async def update_user_quota(
     user_id: int,
     payload: AdminUserQuotaUpdateRequest,
     _: User = Depends(get_current_admin_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
     if payload.world_entry_limit is None and payload.model_call_limit is None:
         raise HTTPException(status_code=400, detail="至少需要提供一个可更新的额度字段")
@@ -113,7 +118,8 @@ def update_user_quota(
         model_call_limit=payload.model_call_limit,
     )
 
-    user = session.exec(select(User).where(User.id == user_id)).first()
+    result = await session.exec(select(User).where(User.id == user_id))
+    user = result.first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
@@ -123,17 +129,17 @@ def update_user_quota(
         model_call_limit=payload.model_call_limit,
     )
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
     return _to_admin_user_read(user)
 
 
 @router.patch("/users/{user_id}", response_model=AdminUserRead)
-def update_user(
+async def update_user(
     user_id: int,
     payload: AdminUserUpdateRequest,
     current_admin: User = Depends(get_current_admin_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
     if not payload.model_fields_set:
         raise HTTPException(status_code=400, detail="未提供可更新字段")
@@ -143,14 +149,15 @@ def update_user(
         model_call_limit=payload.model_call_limit,
     )
 
-    user = session.exec(select(User).where(User.id == user_id)).first()
+    result = await session.exec(select(User).where(User.id == user_id))
+    user = result.first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
 
     if payload.is_admin is False and user.is_admin:
         if user.id == current_admin.id:
             raise HTTPException(status_code=400, detail="不能取消自己的管理员权限")
-        if _admin_count(session) <= 1:
+        if await _admin_count(session) <= 1:
             raise HTTPException(status_code=400, detail="系统至少需要保留一个管理员")
 
     if "nickname" in payload.model_fields_set:
@@ -172,28 +179,30 @@ def update_user(
         user.used_model_calls_today = payload.model_calls_used_today
 
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
     return _to_admin_user_read(user)
 
 
 @router.delete("/users/{user_id}")
-def delete_user(
+async def delete_user(
     user_id: int,
     current_admin: User = Depends(get_current_admin_user),
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ):
-    user = session.exec(select(User).where(User.id == user_id)).first()
+    result = await session.exec(select(User).where(User.id == user_id))
+    user = result.first()
     if not user:
         raise HTTPException(status_code=404, detail="用户不存在")
     if user.id == current_admin.id:
         raise HTTPException(status_code=400, detail="不能删除当前登录的管理员账号")
-    if user.is_admin and _admin_count(session) <= 1:
+    if user.is_admin and await _admin_count(session) <= 1:
         raise HTTPException(status_code=400, detail="系统至少需要保留一个管理员")
 
-    game_sessions = session.exec(select(GameSession).where(GameSession.user_id == user.id)).all()
+    sessions_result = await session.exec(select(GameSession).where(GameSession.user_id == user.id))
+    game_sessions = sessions_result.all()
     for game_session in game_sessions:
-        session.delete(game_session)
-    session.delete(user)
-    session.commit()
+        await session.delete(game_session)
+    await session.delete(user)
+    await session.commit()
     return {"message": "删除成功"}

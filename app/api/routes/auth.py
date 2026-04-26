@@ -1,5 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
-from sqlmodel import Session, select
+from sqlmodel import select
+from sqlmodel.ext.asyncio.session import AsyncSession
 
 from app.core.app_config import get_app_config
 from app.core.deps import get_session
@@ -25,8 +26,9 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=UserRead, status_code=status.HTTP_201_CREATED)
-def register(payload: RegisterRequest, session: Session = Depends(get_session)) -> UserRead:
-    existing_user = session.exec(select(User).where(User.username == payload.username)).first()
+async def register(payload: RegisterRequest, session: AsyncSession = Depends(get_session)) -> UserRead:
+    result = await session.exec(select(User).where(User.username == payload.username))
+    existing_user = result.first()
     if existing_user:
         raise HTTPException(status_code=409, detail="用户名已存在")
 
@@ -39,8 +41,8 @@ def register(payload: RegisterRequest, session: Session = Depends(get_session)) 
         daily_model_call_limit=app_config.quota.default_daily_model_call_limit,
     )
     session.add(user)
-    session.commit()
-    session.refresh(user)
+    await session.commit()
+    await session.refresh(user)
     return UserRead(
         id=user.id,
         username=user.username,
@@ -59,20 +61,21 @@ def register(payload: RegisterRequest, session: Session = Depends(get_session)) 
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(
+async def login(
     payload: LoginRequest,
     request: Request,
-    session: Session = Depends(get_session),
+    session: AsyncSession = Depends(get_session),
 ) -> TokenResponse:
     # 登录失败统一提示，减少用户名枚举风险
     generic_error = HTTPException(status_code=401, detail="用户名或密码错误")
     enforce_ip_login_rate_limit(request)
-    user = session.exec(select(User).where(User.username == payload.username)).first()
+    result = await session.exec(select(User).where(User.username == payload.username))
+    user = result.first()
     if user:
         enforce_account_login_allowed(user)
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        await session.commit()
+        await session.refresh(user)
     if not user:
         record_ip_login_failure(request)
         raise generic_error
@@ -80,8 +83,8 @@ def login(
         record_ip_login_failure(request)
         account_locked = record_account_login_failure(user)
         session.add(user)
-        session.commit()
-        session.refresh(user)
+        await session.commit()
+        await session.refresh(user)
         if account_locked:
             raise HTTPException(status_code=429, detail="登录尝试过于频繁，请稍后重试")
         raise generic_error
@@ -89,6 +92,6 @@ def login(
     clear_ip_login_failures(request)
     clear_account_login_failures(user)
     session.add(user)
-    session.commit()
+    await session.commit()
     token = create_access_token(str(user.id))
     return TokenResponse(access_token=token)
