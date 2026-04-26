@@ -1,35 +1,13 @@
 <template>
-  <div class="auth-shell">
-    <div class="aurora" />
-    <main class="auth-content">
+  <div class="relative min-h-screen overflow-hidden bg-zinc-50 px-4 py-10">
+    <div
+      class="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_18%_18%,rgba(255,255,255,0.95),transparent_24%),radial-gradient(circle_at_82%_14%,rgba(244,244,245,0.9),transparent_24%),linear-gradient(180deg,#fcfcfb_0%,#fafafa_52%,#f6f6f5_100%)]"
+    />
+    <div
+      class="pointer-events-none absolute left-1/2 top-24 h-[26rem] w-[26rem] -translate-x-1/2 rounded-full bg-[radial-gradient(circle,rgba(24,24,27,0.06),transparent_68%)] blur-3xl"
+    />
+    <main class="relative z-10 mx-auto flex min-h-[calc(100vh-5rem)] w-full max-w-md items-center">
       <RouterView />
     </main>
   </div>
 </template>
-
-<style scoped>
-.auth-shell {
-  min-height: 100vh;
-  position: relative;
-  display: grid;
-  place-items: center;
-  padding: 24px;
-}
-
-.aurora {
-  position: absolute;
-  width: min(700px, 95vw);
-  aspect-ratio: 1.2;
-  background:
-    radial-gradient(circle at 30% 30%, rgba(132, 169, 140, 0.22), transparent 60%),
-    radial-gradient(circle at 70% 70%, rgba(232, 208, 162, 0.2), transparent 65%);
-  filter: blur(28px);
-  pointer-events: none;
-}
-
-.auth-content {
-  width: min(440px, 100%);
-  position: relative;
-  z-index: 1;
-}
-</style>
