@@ -39,7 +39,7 @@ def _build_async_connect_args(settings: Settings) -> dict[str, bool | float]:
     return {}
 
 
-def _configure_sqlite_connection(dbapi_connection: object) -> None:
+def _configure_sqlite_connection(dbapi_connection: object, _: object) -> None:
     cursor = dbapi_connection.cursor()
     try:
         cursor.execute("PRAGMA foreign_keys=ON")
