@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from typing import Optional
 
 from sqlalchemy import Column, String
@@ -22,3 +22,5 @@ class User(SQLModel, table=True):
     daily_model_call_limit: int = Field(default=80, ge=0, nullable=False)
     used_model_calls_today: int = Field(default=0, ge=0, nullable=False)
     last_active_date: date = Field(default_factory=date.today, nullable=False)
+    failed_login_attempts: int = Field(default=0, ge=0, nullable=False)
+    login_locked_until: Optional[datetime] = Field(default=None, nullable=True)

@@ -12,6 +12,22 @@ export interface AdminUser {
   has_custom_api_key: boolean;
 }
 
+export interface CreateAdminUserPayload {
+  username: string;
+  password: string;
+  nickname?: string;
+  is_admin: boolean;
+}
+
+export interface UpdateAdminUserPayload {
+  nickname?: string;
+  password?: string;
+  is_admin?: boolean;
+  world_entry_limit?: number;
+  model_call_limit?: number;
+  model_calls_used_today?: number;
+}
+
 export interface PaginatedUsersResponse {
   page: number;
   size: number;

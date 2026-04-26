@@ -33,6 +33,13 @@ class Settings(BaseSettings):
     # 传输安全与代理配置
     ENFORCE_HTTPS: bool = False
     TRUST_X_FORWARDED_PROTO: bool = True
+    TRUST_X_FORWARDED_FOR: bool = False
+
+    # 登录安全防护
+    LOGIN_MAX_FAILURES_PER_ACCOUNT: int = 5
+    LOGIN_ACCOUNT_LOCK_MINUTES: int = 15
+    LOGIN_MAX_ATTEMPTS_PER_IP_WINDOW: int = 20
+    LOGIN_IP_WINDOW_SECONDS: int = 300
 
     # python main.py 时是否同时拉起前端开发服务器
     START_FRONTEND_WITH_BACKEND: bool = True
@@ -67,6 +74,18 @@ class Settings(BaseSettings):
         if len(value) < 32:
             raise ValueError("USER_DATA_ENCRYPTION_SECRET 长度必须至少 32 个字符")
         return value
+
+    @model_validator(mode="after")
+    def validate_login_limits(self):
+        if self.LOGIN_MAX_FAILURES_PER_ACCOUNT < 1:
+            raise ValueError("LOGIN_MAX_FAILURES_PER_ACCOUNT 必须至少为 1")
+        if self.LOGIN_ACCOUNT_LOCK_MINUTES < 1:
+            raise ValueError("LOGIN_ACCOUNT_LOCK_MINUTES 必须至少为 1")
+        if self.LOGIN_MAX_ATTEMPTS_PER_IP_WINDOW < 1:
+            raise ValueError("LOGIN_MAX_ATTEMPTS_PER_IP_WINDOW 必须至少为 1")
+        if self.LOGIN_IP_WINDOW_SECONDS < 1:
+            raise ValueError("LOGIN_IP_WINDOW_SECONDS 必须至少为 1")
+        return self
 
     @model_validator(mode="after")
     def finalize_origins(self):

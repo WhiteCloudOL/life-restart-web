@@ -293,6 +293,9 @@ def game_start(
         payload.custom_prompt,
     )
     event, effects, ended, next_choices, event_segments = _run_story_generation(messages, current_user)
+    story_started = bool(event.strip()) and len(event_segments) > 0
+    if not story_started:
+        raise HTTPException(status_code=502, detail="AI 未成功推进游戏，请稍后重试")
     next_stats = apply_effects_to_stats(initial_stats, effects)
     next_stats = ensure_age_stat(next_stats, start_age=preset_config.start_age)
     next_stats = _inject_system_health(next_stats)
@@ -325,7 +328,7 @@ def game_start(
         history.append({"role": "assistant", "content": end_summary, "effects": {}})
         game_session.event_history = json.dumps(history, ensure_ascii=False)
 
-    # 成功后才计数：进入世界次数 + 模型调用次数
+    # 只有正式成功开始游戏后，才计入一次“进入世界”
     consume_world_entry_quota(current_user, unlimited=unlimited)
     consume_model_call_quota(current_user, unlimited=unlimited)
     session.add(game_session)

@@ -7,7 +7,7 @@ from app.core.app_config import get_app_config
 from app.core.world_config import StartupPresetConfig
 from app.core.world_config import get_world_config
 from app.core.security import encrypt_user_secret, is_encrypted_secret
-from app.core.security import hash_password
+from app.core.security import hash_password, validate_password_strength
 from app.db.session import engine
 from app.models.preset import Preset
 from app.models.user import User
@@ -45,6 +45,12 @@ def migrate_user_quota_columns() -> None:
             conn.execute(
                 text("ALTER TABLE user ADD COLUMN api_mode VARCHAR(16) NOT NULL DEFAULT 'default'")
             )
+        if "failed_login_attempts" not in column_names:
+            conn.execute(
+                text("ALTER TABLE user ADD COLUMN failed_login_attempts INTEGER NOT NULL DEFAULT 0")
+            )
+        if "login_locked_until" not in column_names:
+            conn.execute(text("ALTER TABLE user ADD COLUMN login_locked_until DATETIME"))
 
         conn.execute(
             text(
@@ -69,6 +75,12 @@ def migrate_user_quota_columns() -> None:
             text(
                 "UPDATE user SET api_mode = 'default' "
                 "WHERE api_mode IS NULL OR api_mode NOT IN ('default', 'custom')"
+            )
+        )
+        conn.execute(
+            text(
+                "UPDATE user SET failed_login_attempts = 0 "
+                "WHERE failed_login_attempts IS NULL OR failed_login_attempts < 0"
             )
         )
 
@@ -142,6 +154,7 @@ def seed_default_admin() -> None:
         if existing:
             return
         try:
+            validate_password_strength(password)
             hashed_password = hash_password(password)
         except ValueError as exc:
             print(f"[init_db] 默认管理员创建失败：{exc}")

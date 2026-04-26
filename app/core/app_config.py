@@ -61,7 +61,7 @@ class GameplayConfig(BaseModel):
 class DefaultAdminConfig(BaseModel):
     model_config = ConfigDict(extra="forbid")
     username: str = Field(default="admin", min_length=1, max_length=32)
-    password: str = Field(default="Admin@12345678", min_length=1, max_length=128)
+    password: str = Field(default="RootOnly!8472X", min_length=1, max_length=128)
 
 
 class AppConfig(BaseModel):

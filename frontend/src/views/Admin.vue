@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { computed, onMounted, ref } from 'vue';
-import { listUsersByPage, updateUserQuota } from '@/api/admin';
+import { createAdminUser, deleteAdminUser, listUsersByPage, updateAdminUser } from '@/api/admin';
 import BaseButton from '@/components/BaseButton.vue';
 import BaseModal from '@/components/BaseModal.vue';
 import { useAuthStore } from '@/stores/useAuthStore';
-import type { AdminUser } from '@/types/admin';
+import type { AdminUser, CreateAdminUserPayload, UpdateAdminUserPayload } from '@/types/admin';
+
+type DialogMode = 'create' | 'edit';
 
 const users = ref<AdminUser[]>([]);
 const authStore = useAuthStore();
@@ -13,13 +15,29 @@ const size = 10;
 const total = ref<number>(0);
 const isLoading = ref<boolean>(false);
 const errorMessage = ref<string>('');
-
-const editingUser = ref<AdminUser | null>(null);
-const editingWorldEntryLimit = ref<string>('0');
-const editingModelCallLimit = ref<string>('0');
 const isSubmitting = ref<boolean>(false);
+const deletingUserId = ref<number | null>(null);
+
+const dialogVisible = ref<boolean>(false);
+const dialogMode = ref<DialogMode>('edit');
+const editingUser = ref<AdminUser | null>(null);
+
+const formUsername = ref<string>('');
+const formNickname = ref<string>('');
+const formPassword = ref<string>('');
+const formIsAdmin = ref<boolean>(false);
+const formWorldEntryLimit = ref<string>('0');
+const formModelCallLimit = ref<string>('0');
+const formModelCallsUsedToday = ref<string>('0');
 
 const totalPages = computed<number>(() => Math.max(Math.ceil(total.value / size), 1));
+const dialogTitle = computed<string>(() =>
+  dialogMode.value === 'create' ? '新增账户' : '编辑用户',
+);
+
+const toast = (type: 'success' | 'warning' | 'error', message: string): void => {
+  window.dispatchEvent(new CustomEvent('app:toast', { detail: { type, message } }));
+};
 
 const loadPage = async (): Promise<void> => {
   isLoading.value = true;
@@ -36,61 +54,147 @@ const loadPage = async (): Promise<void> => {
   }
 };
 
-const openQuotaDialog = (user: AdminUser): void => {
-  editingUser.value = user;
-  editingWorldEntryLimit.value = String(user.world_entry_limit);
-  editingModelCallLimit.value = String(user.model_call_limit);
+const resetForm = (): void => {
+  formUsername.value = '';
+  formNickname.value = '';
+  formPassword.value = '';
+  formIsAdmin.value = false;
+  formWorldEntryLimit.value = '0';
+  formModelCallLimit.value = '0';
+  formModelCallsUsedToday.value = '0';
 };
 
-const closeQuotaDialog = (): void => {
+const closeDialog = (): void => {
+  dialogVisible.value = false;
   editingUser.value = null;
+  resetForm();
 };
 
-const submitQuota = async (): Promise<void> => {
-  if (!editingUser.value) {
-    return;
-  }
-  const nextWorldEntry = Number(editingWorldEntryLimit.value);
-  const nextModelCalls = Number(editingModelCallLimit.value);
-  if (
-    !Number.isFinite(nextWorldEntry) ||
-    !Number.isFinite(nextModelCalls) ||
-    nextWorldEntry < 0 ||
-    nextModelCalls < 0
-  ) {
-    window.dispatchEvent(
-      new CustomEvent('app:toast', {
-        detail: { type: 'warning', message: '请输入正确的次数（>= 0）' },
-      }),
-    );
-    return;
-  }
+const openCreateDialog = (): void => {
+  dialogMode.value = 'create';
+  editingUser.value = null;
+  resetForm();
+  dialogVisible.value = true;
+};
 
-  isSubmitting.value = true;
+const openEditDialog = (user: AdminUser): void => {
+  dialogMode.value = 'edit';
+  editingUser.value = user;
+  formUsername.value = user.username;
+  formNickname.value = user.nickname;
+  formPassword.value = '';
+  formIsAdmin.value = user.is_admin;
+  formWorldEntryLimit.value = String(user.world_entry_limit);
+  formModelCallLimit.value = String(user.model_call_limit);
+  formModelCallsUsedToday.value = String(user.model_calls_used_today);
+  dialogVisible.value = true;
+};
+
+const parseNonNegativeInteger = (value: string, label: string): number => {
+  const nextValue = Number(value);
+  if (!Number.isInteger(nextValue) || nextValue < 0) {
+    throw new Error(`${label}必须是大于等于 0 的整数`);
+  }
+  return nextValue;
+};
+
+const syncCurrentUserIfNeeded = (updated: AdminUser): void => {
+  if (updated.id !== authStore.user?.user_id) {
+    return;
+  }
+  authStore.syncAdminManagedProfile(
+    updated.nickname,
+    updated.is_admin,
+    updated.world_entry_limit,
+    updated.world_entries_used_today,
+    updated.model_call_limit,
+    updated.model_calls_used_today,
+  );
+};
+
+const submitDialog = async (): Promise<void> => {
   try {
-    const updated = await updateUserQuota(editingUser.value.id, {
-      world_entry_limit: nextWorldEntry,
-      model_call_limit: nextModelCalls,
-    });
-    users.value = users.value.map((item) => (item.id === updated.id ? updated : item));
-    if (updated.id === authStore.user?.user_id) {
-      authStore.syncQuota(
-        updated.world_entry_limit,
-        updated.world_entries_used_today,
-        updated.model_call_limit,
-        updated.model_calls_used_today,
-      );
-    }
-    closeQuotaDialog();
-  } catch (error) {
-    const message = (error as { message?: string }).message ?? '更新失败';
-    window.dispatchEvent(
-      new CustomEvent('app:toast', {
-        detail: { type: 'error', message },
-      }),
+    const nickname = formNickname.value.trim();
+    const worldEntryLimit = parseNonNegativeInteger(formWorldEntryLimit.value, '每日进入次数');
+    const modelCallLimit = parseNonNegativeInteger(formModelCallLimit.value, '模型调用上限');
+    const modelCallsUsedToday = parseNonNegativeInteger(
+      formModelCallsUsedToday.value,
+      '模型调用已用次数',
     );
+    if (modelCallsUsedToday > modelCallLimit) {
+      throw new Error('模型调用已用次数不能超过模型调用上限');
+    }
+
+    isSubmitting.value = true;
+    if (dialogMode.value === 'create') {
+      const username = formUsername.value.trim();
+      const password = formPassword.value;
+      if (!username) {
+        throw new Error('请输入用户名');
+      }
+      if (!password) {
+        throw new Error('请输入密码');
+      }
+      const payload: CreateAdminUserPayload = {
+        username,
+        password,
+        nickname: nickname || undefined,
+        is_admin: formIsAdmin.value,
+      };
+      await createAdminUser(payload);
+      toast('success', '账户已创建');
+      closeDialog();
+      page.value = 1;
+      await loadPage();
+      return;
+    }
+
+    if (!editingUser.value) {
+      return;
+    }
+    const payload: UpdateAdminUserPayload = {
+      nickname: nickname || undefined,
+      is_admin: formIsAdmin.value,
+      world_entry_limit: worldEntryLimit,
+      model_call_limit: modelCallLimit,
+      model_calls_used_today: modelCallsUsedToday,
+    };
+    if (formPassword.value.trim()) {
+      payload.password = formPassword.value;
+    }
+    const updated = await updateAdminUser(editingUser.value.id, payload);
+    users.value = users.value.map((item) => (item.id === updated.id ? updated : item));
+    syncCurrentUserIfNeeded(updated);
+    toast('success', '用户信息已更新');
+    closeDialog();
+  } catch (error) {
+    const message = (error as { message?: string }).message ?? '操作失败';
+    toast('error', message);
   } finally {
     isSubmitting.value = false;
+  }
+};
+
+const removeUser = async (user: AdminUser): Promise<void> => {
+  const confirmed = window.confirm(`确认删除账户 ${user.username} 吗？该用户的历史游戏记录也会被删除。`);
+  if (!confirmed) {
+    return;
+  }
+  deletingUserId.value = user.id;
+  try {
+    await deleteAdminUser(user.id);
+    users.value = users.value.filter((item) => item.id !== user.id);
+    total.value = Math.max(0, total.value - 1);
+    toast('success', '账户已删除');
+    if (users.value.length === 0 && page.value > 1) {
+      page.value -= 1;
+      await loadPage();
+    }
+  } catch (error) {
+    const message = (error as { message?: string }).message ?? '删除失败';
+    toast('error', message);
+  } finally {
+    deletingUserId.value = null;
   }
 };
 
@@ -100,14 +204,17 @@ onMounted(loadPage);
 <template>
   <section class="panel">
     <header class="head">
-      <h1>管理员看板</h1>
-      <p>管理每个用户的每日进入次数与可用模型调用次数</p>
+      <div>
+        <h1>管理员看板</h1>
+        <p>集中管理账户、角色、昵称、密码，以及每日次数与模型调用用量</p>
+      </div>
+      <BaseButton type="button" @click="openCreateDialog">新增账户</BaseButton>
     </header>
 
     <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
     <p v-if="isLoading" class="hint">加载中...</p>
 
-    <div class="table-wrap" v-if="!isLoading">
+    <div v-if="!isLoading" class="table-wrap">
       <table>
         <thead>
           <tr>
@@ -137,7 +244,17 @@ onMounted(loadPage);
             <td>{{ user.model_calls_used_today }}</td>
             <td>{{ user.has_custom_api_key ? '是' : '否' }}</td>
             <td>
-              <button class="link-btn" type="button" @click="openQuotaDialog(user)">修改次数</button>
+              <div class="row-actions">
+                <button class="link-btn" type="button" @click="openEditDialog(user)">编辑</button>
+                <button
+                  class="link-btn danger-btn"
+                  type="button"
+                  :disabled="deletingUserId === user.id"
+                  @click="removeUser(user)"
+                >
+                  {{ deletingUserId === user.id ? '删除中...' : '删除' }}
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -151,19 +268,48 @@ onMounted(loadPage);
     </footer>
   </section>
 
-  <BaseModal :visible="Boolean(editingUser)" title="调整用户额度" @close="closeQuotaDialog">
-    <form class="quota-form" @submit.prevent="submitQuota">
-      <p v-if="editingUser">用户：{{ editingUser.username }}（ID: {{ editingUser.id }}）</p>
-      <label>
-        <span>每日进入次数</span>
-        <input v-model="editingWorldEntryLimit" type="number" min="0" step="1" />
+  <BaseModal :visible="dialogVisible" :title="dialogTitle" @close="closeDialog">
+    <form class="user-form" @submit.prevent="submitDialog">
+      <label v-if="dialogMode === 'create'">
+        <span>用户名</span>
+        <input v-model="formUsername" type="text" maxlength="32" autocomplete="off" />
       </label>
       <label>
-        <span>模型调用上限</span>
-        <input v-model="editingModelCallLimit" type="number" min="0" step="1" />
+        <span>昵称</span>
+        <input v-model="formNickname" type="text" maxlength="32" autocomplete="off" />
       </label>
+      <label>
+        <span>{{ dialogMode === 'create' ? '密码' : '新密码（留空则不修改）' }}</span>
+        <input
+          v-model="formPassword"
+          type="password"
+          maxlength="128"
+          :autocomplete="dialogMode === 'create' ? 'new-password' : 'off'"
+        />
+      </label>
+      <label>
+        <span>角色</span>
+        <select v-model="formIsAdmin">
+          <option :value="false">普通用户</option>
+          <option :value="true">管理员</option>
+        </select>
+      </label>
+      <template v-if="dialogMode === 'edit'">
+        <label>
+          <span>每日进入次数</span>
+          <input v-model="formWorldEntryLimit" type="number" min="0" step="1" />
+        </label>
+        <label>
+          <span>模型调用上限</span>
+          <input v-model="formModelCallLimit" type="number" min="0" step="1" />
+        </label>
+        <label>
+          <span>模型调用已用次数</span>
+          <input v-model="formModelCallsUsedToday" type="number" min="0" step="1" />
+        </label>
+      </template>
       <div class="actions">
-        <button type="button" class="ghost" @click="closeQuotaDialog">取消</button>
+        <button type="button" class="ghost" @click="closeDialog">取消</button>
         <BaseButton type="submit" :loading="isSubmitting">保存</BaseButton>
       </div>
     </form>
@@ -178,6 +324,13 @@ onMounted(loadPage);
   background: var(--panel);
   backdrop-filter: blur(14px);
   box-shadow: var(--shadow-soft);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
 }
 
 .head h1 {
@@ -226,6 +379,12 @@ th {
   font-size: 13px;
 }
 
+.row-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
 .link-btn {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.72);
@@ -239,6 +398,14 @@ th {
 .link-btn:hover {
   transform: translateY(-1px) scale(1.02);
   background: rgba(222, 247, 239, 0.9);
+}
+
+.danger-btn {
+  color: var(--danger);
+}
+
+.danger-btn:hover {
+  background: rgba(255, 230, 230, 0.9);
 }
 
 .pager {
@@ -258,22 +425,23 @@ th {
   padding: 0 12px;
 }
 
-.quota-form {
+.user-form {
   display: grid;
   gap: 12px;
 }
 
-.quota-form label {
+.user-form label {
   display: grid;
   gap: 6px;
 }
 
-.quota-form span {
+.user-form span {
   color: var(--subtext);
   font-size: 13px;
 }
 
-.quota-form input {
+.user-form input,
+.user-form select {
   height: 40px;
   border-radius: 8px;
   border: 1px solid var(--line);
@@ -294,5 +462,17 @@ th {
   border: 1px solid var(--line);
   background: rgba(255, 255, 255, 0.8);
   color: var(--text);
+}
+
+@media (max-width: 720px) {
+  .head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .row-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
 }
 </style>

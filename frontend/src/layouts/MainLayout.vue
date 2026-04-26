@@ -60,8 +60,10 @@ watch(
       </nav>
       <div class="right">
         <span class="quota">{{ authStore.quotaText }}</span>
-        <span class="name">{{ userName }}</span>
-        <button class="logout" type="button" @click="onLogout">退出</button>
+        <div class="account-actions">
+          <span class="name">{{ userName }}</span>
+          <button class="logout" type="button" @click="onLogout">退出</button>
+        </div>
       </div>
     </header>
     <main class="main-content">
@@ -128,6 +130,16 @@ watch(
   display: flex;
   align-items: center;
   gap: 12px;
+  min-width: 0;
+  flex-wrap: nowrap;
+}
+
+.account-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: nowrap;
+  white-space: nowrap;
 }
 
 .quota {
@@ -178,6 +190,22 @@ watch(
   .nav {
     order: 3;
     width: 100%;
+  }
+
+  .right {
+    width: 100%;
+    justify-content: space-between;
+    gap: 10px;
+  }
+
+  .quota {
+    min-width: 0;
+    flex: 1;
+    font-size: 13px;
+  }
+
+  .account-actions {
+    flex-shrink: 0;
   }
 }
 

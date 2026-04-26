@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlmodel import Session, select
 
 from app.core.app_config import get_app_config
@@ -12,6 +12,14 @@ from app.core.security import (
 from app.models.user import User
 from app.schemas.auth import LoginRequest, RegisterRequest, TokenResponse
 from app.schemas.user import UserRead
+from app.services.login_guard import (
+    clear_account_login_failures,
+    clear_ip_login_failures,
+    enforce_account_login_allowed,
+    enforce_ip_login_rate_limit,
+    record_account_login_failure,
+    record_ip_login_failure,
+)
 
 router = APIRouter(prefix="/auth", tags=["auth"])
 
@@ -51,14 +59,36 @@ def register(payload: RegisterRequest, session: Session = Depends(get_session)) 
 
 
 @router.post("/login", response_model=TokenResponse)
-def login(payload: LoginRequest, session: Session = Depends(get_session)) -> TokenResponse:
+def login(
+    payload: LoginRequest,
+    request: Request,
+    session: Session = Depends(get_session),
+) -> TokenResponse:
     # 登录失败统一提示，减少用户名枚举风险
     generic_error = HTTPException(status_code=401, detail="用户名或密码错误")
+    enforce_ip_login_rate_limit(request)
     user = session.exec(select(User).where(User.username == payload.username)).first()
+    if user:
+        enforce_account_login_allowed(user)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
     if not user:
+        record_ip_login_failure(request)
         raise generic_error
     if not verify_password(payload.password, user.hashed_password):
+        record_ip_login_failure(request)
+        account_locked = record_account_login_failure(user)
+        session.add(user)
+        session.commit()
+        session.refresh(user)
+        if account_locked:
+            raise HTTPException(status_code=429, detail="登录尝试过于频繁，请稍后重试")
         raise generic_error
 
+    clear_ip_login_failures(request)
+    clear_account_login_failures(user)
+    session.add(user)
+    session.commit()
     token = create_access_token(str(user.id))
     return TokenResponse(access_token=token)

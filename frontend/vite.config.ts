@@ -17,6 +17,7 @@ export default defineConfig(({ mode }) => {
   const backendPort = Number(env.APP_PORT || 8000);
   const devPort = Number(env.VITE_DEV_PORT || frontendUrl.port || 5173);
   const devHost = env.VITE_DEV_HOST || frontendUrl.hostname || '127.0.0.1';
+  // APP_HOST=0.0.0.0 时，前端代理仍然应该回连到本机可访问地址。
   const apiProxyTarget =
     env.VITE_API_PROXY_TARGET ||
     `http://${backendHost}:${Number.isFinite(backendPort) ? backendPort : 8000}`;

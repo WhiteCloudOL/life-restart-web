@@ -138,6 +138,25 @@ export const useAuthStore = defineStore('auth', () => {
     user.value.model_calls_used_today = modelCallsUsedToday;
   };
 
+  const syncAdminManagedProfile = (
+    nickname: string,
+    isAdmin: boolean,
+    worldEntryLimit: number,
+    worldEntriesUsedToday: number,
+    modelCallLimit: number,
+    modelCallsUsedToday: number,
+  ): void => {
+    if (!user.value) {
+      return;
+    }
+    user.value.nickname = nickname;
+    user.value.is_admin = isAdmin;
+    user.value.world_entry_limit = worldEntryLimit;
+    user.value.world_entries_used_today = worldEntriesUsedToday;
+    user.value.model_call_limit = modelCallLimit;
+    user.value.model_calls_used_today = modelCallsUsedToday;
+  };
+
   if (typeof window !== 'undefined' && !hasUnauthorizedListener) {
     window.addEventListener('auth:unauthorized', () => {
       clearAuthState();
@@ -157,6 +176,7 @@ export const useAuthStore = defineStore('auth', () => {
     fetchUserInfo,
     updateUserInfo,
     syncQuota,
+    syncAdminManagedProfile,
     clearAuthState,
   };
 });

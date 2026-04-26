@@ -18,19 +18,46 @@ const form = reactive({
   custom_base_url: '',
 });
 
+const isSyncingFromStore = ref<boolean>(false);
+const hasUnsavedChanges = ref<boolean>(false);
+const lastSyncedUserId = ref<number | null>(null);
+
+const applyUserToForm = (user: NonNullable<typeof authStore.user>): void => {
+  isSyncingFromStore.value = true;
+  form.username = user.username;
+  form.nickname = user.nickname ?? user.username;
+  form.api_mode = user.api_mode ?? 'default';
+  form.custom_model_name = user.custom_model_name ?? '';
+  form.custom_base_url = user.custom_base_url ?? '';
+  form.custom_api_key = '';
+  lastSyncedUserId.value = user.user_id;
+  hasUnsavedChanges.value = false;
+  isSyncingFromStore.value = false;
+};
+
 watch(
   () => authStore.user,
   (user) => {
     if (!user) {
       return;
     }
-    form.username = user.username;
-    form.nickname = user.nickname ?? user.username;
-    form.api_mode = user.api_mode ?? 'default';
-    form.custom_model_name = user.custom_model_name ?? '';
-    form.custom_base_url = user.custom_base_url ?? '';
+    const isDifferentUser = lastSyncedUserId.value !== user.user_id;
+    if (isDifferentUser || !hasUnsavedChanges.value) {
+      applyUserToForm(user);
+    }
   },
   { immediate: true },
+);
+
+watch(
+  form,
+  () => {
+    if (isSyncingFromStore.value) {
+      return;
+    }
+    hasUnsavedChanges.value = true;
+  },
+  { deep: true },
 );
 
 const onSave = async (): Promise<void> => {
@@ -66,10 +93,10 @@ const onSave = async (): Promise<void> => {
       payload.custom_api_key = form.custom_api_key.trim();
     }
 
-    await authStore.updateUserInfo({
+    const updatedUser = await authStore.updateUserInfo({
       ...payload,
     });
-    form.custom_api_key = '';
+    applyUserToForm(updatedUser);
     successMessage.value = '设置已更新';
   } catch (error) {
     const message = (error as { message?: string }).message;
