@@ -5,7 +5,7 @@ import { pinia } from '@/stores';
 const LoginView = () => import('@/views/Login.vue');
 const RegisterView = () => import('@/views/Register.vue');
 const HomeView = () => import('@/views/Home.vue');
-const GameSessionView = () => import('@/views/GameSession.vue');
+const GameSessionView = () => import('@/views/GamePlay.vue');
 const ProfileView = () => import('@/views/Profile.vue');
 const AdminView = () => import('@/views/Admin.vue');
 const NotFoundView = () => import('@/views/NotFound.vue');

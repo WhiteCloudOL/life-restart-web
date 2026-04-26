@@ -1,12 +1,28 @@
 <script setup lang="ts">
 import { computed, onBeforeUnmount, onMounted, watch } from 'vue';
-import { RouterLink, RouterView } from 'vue-router';
+import { RouterLink, RouterView, useRoute } from 'vue-router';
 import { useAuthStore } from '@/stores/useAuthStore';
 
 const authStore = useAuthStore();
+const route = useRoute();
 let syncTimer: number | null = null;
 
 const userName = computed<string>(() => authStore.user?.nickname ?? authStore.user?.username ?? '游客');
+
+const navItems = computed(() => {
+  const base = [
+    { label: '大厅', to: '/' },
+    { label: '设置', to: '/profile' },
+  ];
+
+  if (authStore.user?.is_admin) {
+    base.push({ label: '管理', to: '/admin' });
+  }
+
+  return base;
+});
+
+const isGameRoute = computed<boolean>(() => route.path === '/game');
 
 const onLogout = (): void => {
   authStore.logout();
@@ -50,172 +66,67 @@ watch(
 </script>
 
 <template>
-  <div class="layout-shell">
-    <header class="topbar">
-      <RouterLink class="brand" to="/">AI Life Simulator</RouterLink>
-      <nav class="nav">
-        <RouterLink to="/">大厅</RouterLink>
-        <RouterLink to="/profile">设置</RouterLink>
-        <RouterLink v-if="authStore.user?.is_admin" to="/admin">管理</RouterLink>
+  <div class="min-h-screen bg-zinc-50">
+    <header
+      class="fixed inset-x-0 top-0 z-50 flex h-16 items-center justify-between border-b border-zinc-100 bg-white/70 px-6 backdrop-blur-xl lg:px-12"
+    >
+      <RouterLink to="/" class="text-lg font-bold tracking-tight text-zinc-800">AI Life Simulator</RouterLink>
+
+      <nav class="hidden items-center gap-8 text-sm font-medium text-zinc-500 md:flex">
+        <RouterLink
+          v-for="item in navItems"
+          :key="item.to"
+          :to="item.to"
+          class="transition-colors hover:text-zinc-900"
+          :class="route.path === item.to ? 'text-zinc-900' : ''"
+        >
+          {{ item.label }}
+        </RouterLink>
       </nav>
-      <div class="right">
-        <span class="quota">{{ authStore.quotaText }}</span>
-        <div class="account-actions">
-          <span class="name">{{ userName }}</span>
-          <button class="logout" type="button" @click="onLogout">退出</button>
-        </div>
+
+      <div class="flex min-w-0 items-center gap-2 lg:gap-3">
+        <span
+          class="hidden items-center gap-1.5 rounded-full bg-zinc-100/80 px-3 py-1.5 text-xs font-semibold text-zinc-600 ring-1 ring-inset ring-zinc-200 xl:inline-flex"
+        >
+          <span class="h-1.5 w-1.5 rounded-full bg-zinc-400" />
+          {{ authStore.quotaText }}
+        </span>
+        <span
+          class="inline-flex items-center gap-1.5 rounded-full bg-zinc-100/80 px-3 py-1.5 text-xs font-semibold text-zinc-600 ring-1 ring-inset ring-zinc-200"
+        >
+          {{ userName }}
+        </span>
+        <button
+          type="button"
+          class="rounded-full bg-zinc-800 px-3.5 py-2 text-xs font-medium text-white transition-all duration-300 hover:bg-zinc-900 hover:shadow-md"
+          @click="onLogout"
+        >
+          退出
+        </button>
       </div>
     </header>
-    <main class="main-content">
-      <RouterView v-slot="{ Component, route }">
-        <Transition name="page-float" mode="out-in">
-          <component :is="Component" :key="route.fullPath" />
-        </Transition>
-      </RouterView>
+
+    <main :class="isGameRoute ? 'px-0' : 'px-0'">
+      <div :class="isGameRoute ? 'pt-16' : 'mx-auto max-w-[1400px] px-0 pt-16'">
+        <RouterView v-slot="{ Component, route: currentRoute }">
+          <Transition name="page-float" mode="out-in">
+            <component :is="Component" :key="currentRoute.fullPath" />
+          </Transition>
+        </RouterView>
+      </div>
     </main>
   </div>
 </template>
 
 <style scoped>
-.layout-shell {
-  min-height: 100vh;
-}
-
-.topbar {
-  min-height: 66px;
-  padding: 10px 20px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  border-bottom: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.72);
-  backdrop-filter: blur(14px);
-  box-shadow: var(--shadow-soft);
-}
-
-.brand {
-  font-weight: 700;
-  letter-spacing: 0.7px;
-  color: var(--title);
-  text-transform: uppercase;
-  font-size: 13px;
-  font-family: var(--font-serif);
-}
-
-.nav {
-  display: flex;
-  gap: 8px;
-  font-size: 14px;
-}
-
-.nav a {
-  color: var(--subtext);
-  padding: 6px 10px;
-  border-radius: 999px;
-  transition: color 0.2s ease, background-color 0.2s ease;
-}
-
-.nav a:hover {
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.66);
-}
-
-.nav a.router-link-exact-active {
-  color: #0f766e;
-  background: rgba(212, 239, 229, 0.95);
-  border: 1px solid rgba(42, 157, 143, 0.4);
-}
-
-.right {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  min-width: 0;
-  flex-wrap: nowrap;
-}
-
-.account-actions {
-  display: inline-flex;
-  align-items: center;
-  gap: 12px;
-  flex-wrap: nowrap;
-  white-space: nowrap;
-}
-
-.quota {
-  color: var(--subtext);
-  font-size: 14px;
-}
-
-.name {
-  font-size: 14px;
-  padding: 5px 10px;
-  border-radius: 999px;
-  border: 1px solid var(--line);
-  background: rgba(255, 255, 255, 0.72);
-}
-
-.logout {
-  border: 1px solid var(--line);
-  color: var(--text);
-  background: rgba(255, 255, 255, 0.72);
-  height: 32px;
-  padding: 0 12px;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: border-color 0.3s ease, background-color 0.3s ease, transform 0.3s ease;
-}
-
-.logout:hover {
-  border-color: var(--line-strong);
-  background: rgba(235, 247, 241, 0.95);
-  transform: scale(1.02);
-}
-
-.main-content {
-  width: min(1220px, 100%);
-  margin: 0 auto;
-  padding: 28px 20px 44px;
-}
-
-@media (max-width: 860px) {
-  .topbar {
-    height: auto;
-    min-height: 64px;
-    padding: 10px 14px;
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-
-  .nav {
-    order: 3;
-    width: 100%;
-  }
-
-  .right {
-    width: 100%;
-    justify-content: space-between;
-    gap: 10px;
-  }
-
-  .quota {
-    min-width: 0;
-    flex: 1;
-    font-size: 13px;
-  }
-
-  .account-actions {
-    flex-shrink: 0;
-  }
-}
-
 .page-float-enter-active,
 .page-float-leave-active {
-  transition: opacity 0.2s ease-out;
+  transition: opacity 0.24s ease, transform 0.24s ease;
 }
 
 .page-float-enter-from,
 .page-float-leave-to {
   opacity: 0;
+  transform: translateY(8px);
 }
 </style>
